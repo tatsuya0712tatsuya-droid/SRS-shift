@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SRS ~Sunagawa Resident Shift~</title>
+    <style>
+        :root {
+            --primary: #2c3e50;
+            --secondary: #34495e;
+            --accent: #3498db;
+            --bg: #ecf0f1;
+            --white: #ffffff;
+            --border: #bdc3c7;
+            --day-bg: #f9f9f9;
+            --sat-color: #2980b9;
+            --sun-color: #c0392b;
+        }
+        body {
+            font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', Meiryo, sans-serif;
+            background-color: var(--bg);
+            color: var(--primary);
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: var(--white);
+            padding: 20px 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        h1 {
+            text-align: center;
+            color: var(--primary);
+            border-bottom: 2px solid var(--accent);
+            padding-bottom: 10px;
+        }
+        .controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+            padding: 15px;
+            background: var(--bg);
+            border-radius: 6px;
+        }
+        .controls-group {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+        select, button {
+            padding: 8px 12px;
+            font-size: 16px;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+        }
+        button {
+            background-color: var(--accent);
+            color: var(--white);
+            cursor: pointer;
+            border: none;
+            transition: background 0.3s;
+        }
+        button:hover { background-color: #2980b9; }
+        
+        .mode-selector {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        .mode-btn {
+            background-color: var(--secondary);
+        }
+        .mode-btn.active {
+            background-color: var(--accent);
+            font-weight: bold;
+        }
+
+        /* Calendar Grid */
+        .calendar {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 30px;
+        }
+        .calendar th, .calendar td {
+            border: 1px solid var(--border);
+            padding: 10px;
+            text-align: left;
+            vertical-align: top;
+        }
+        .calendar th {
+            background-color: var(--secondary);
+            color: var(--white);
+            text-align: center;
+        }
+        .calendar td {
+            background-color: var(--day-bg);
+            height: 100px;
+            width: 14.28%;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .calendar td:hover { background-color: #e8f4f8; }
+        .date-header {
+            display: flex;
+            justify-content: space-between;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        .sat { color: var(--sat-color); }
+        .sun, .holiday-text { color: var(--sun-color); }
+        
+        .shift-badge {
+            display: block;
+            font-size: 12px;
+            padding: 3px 5px;
+            margin-bottom: 3px;
+            border-radius: 3px;
+            color: white;
+        }
+        .bg-day { background-color: #f39c12; }
+        .bg-night { background-color: #8e44ad; }
+        .bg-evening { background-color: #16a085; }
+        .bg-ng { background-color: #7f8c8d; }
+
+        /* Stats Table */
+        .stats-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            font-size: 14px;
+        }
+        .stats-table th, .stats-table td {
+            border: 1px solid var(--border);
+            padding: 8px;
+            text-align: center;
+        }
+        .stats-table th { background-color: var(--secondary); color: white; }
+
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5);
+            justify-content: center;
+            align-items: center;
+        }
+        .modal-content {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            width: 90%;
+            max-width: 500px;
+        }
+        .modal-header { font-size: 18px; font-weight: bold; margin-bottom: 15px; }
+        .member-checkboxes { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px;}
+        .form-group { margin-bottom: 15px; border-bottom: 1px solid #eee; padding-bottom: 10px;}
+        .modal-actions { display: flex; justify-content: flex-end; gap: 10px; }
+        
+        /* Holiday Toggle */
+        .holiday-toggle { font-size: 10px; background: #eee; border: 1px solid #ccc; cursor: pointer; padding: 2px 5px; border-radius: 3px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>SRS ~Sunagawa Resident Shift~</h1>
+    
+    <div class="mode-selector">
+        <button class="mode-btn active" id="btn-view" onclick="setMode('view')">シフト確認・編集モード</button>
+        <button class="mode-btn" id="btn-request" onclick="setMode('request')">休み希望入力モード</button>
+    </div>
+
+    <div class="controls">
+    <div class="controls-group">
+        <select id="year-select"></select> 年
+        <select id="month-select"></select> 月
+        <button onclick="loadMonth()">表示</button>
+        <button onclick="fetchSpreadsheetData()" style="background-color: #e67e22; font-size: 14px;">🔄 最新データに更新</button>
+    </div>
+    <div class="controls-group" id="generate-group">
+        <button onclick="generateShift()" style="background-color: #27ae60;">自動生成する</button>
+        <button onclick="clearShift()" style="background-color: #c0392b;">シフトをクリア</button>
+    </div>
+        </div>
+        <div class="controls-group" id="request-group" style="display: none;">
+            <select id="member-select"></select>
+            <span>（カレンダーの日付をクリックして休み希望をON/OFF）</span>
+        </div>
+    </div>
+
+    <table class="calendar">
+        <thead>
+            <tr>
+                <th class="sun">日</th><th>月</th><th>火</th><th>水</th><th>木</th><th>金</th><th class="sat">土</th>
+            </tr>
+        </thead>
+        <tbody id="calendar-body"></tbody>
+    </table>
+
+    <div id="stats-container">
+        <h3>当月シフト内訳</h3>
+        <table class="stats-table" id="stats-table">
+            <thead>
+                <tr>
+                    <th>氏名</th>
+                    <th>平日当直</th>
+                    <th>平日イブニング</th>
+                    <th>土日祝当直</th>
+                    <th>土日祝日直</th>
+                    <th>当月合計</th>
+                    <th>休み希望</th>
+                </tr>
+            </thead>
+            <tbody id="stats-body"></tbody>
+        </table>
+    </div>
+</div>
+
+<div class="modal" id="edit-modal">
+    <div class="modal-content">
+        <div class="modal-header" id="modal-date-title"></div>
+        
+        <div class="form-group">
+            <label><strong>日直 (8:30-17:00) ※土日祝のみ</strong></label>
+            <div class="member-checkboxes" id="day-members"></div>
+        </div>
+        <div class="form-group">
+            <label><strong>当直 (17:00-翌8:30)</strong></label>
+            <div class="member-checkboxes" id="night-members"></div>
+        </div>
+        <div class="form-group">
+            <label><strong>イブニング当直 (17:00-22:00)</strong></label>
+            <div class="member-checkboxes" id="evening-members"></div>
+        </div>
+        
+        <div class="modal-actions">
+            <button onclick="closeModal()" style="background: #95a5a6;">キャンセル</button>
+            <button onclick="saveModalData()">保存</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    const members = ['熊谷達也', '熊谷颯太', '本田愛珠', '須田彩月', '旗本雄太', '木村友哉', '高橋佑奈', '三浦拓己', '西堀元樹', '渡邊万希子'];
+    const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbznv_vdW4nqw_Cl_c3claR0W6wH9kGKuYaa4DaSPbpH4GoXIquqhWLXjwZ9awDQPXqg/exec';
+
+    // State
+    let currentYear = new Date().getFullYear() < 2026 ? 2026 : new Date().getFullYear();
+    let currentMonth = new Date().getMonth() + 1;
+    let mode = 'view'; // 'view' or 'request'
+    let selectedDate = null;
+    
+    // Data Storage Structure (Mock DB in LocalStorage)
+    // srs_data = { "2026-5": { shifts: { "1": { day:[], night:[], evening:[] } }, requests: { "1": ["熊谷達也"] }, holidays: [3, 4, 5] } }
+    let db = {};
+
+function fetchSpreadsheetData() {
+    fetch(SCRIPT_URL)
+        .then(response => response.json())
+        .then(data => {
+            db = data;
+            loadMonth();
+            alert('スプレッドシートから最新データを読み込みました。');
+        })
+        .catch(err => {
+            console.error("データ読み込みエラー:", err);
+            alert('読み込みに失敗しました。');
+        });
+}
+    function init() {
+        const yearSel = document.getElementById('year-select');
+        for(let y=2026; y<=2028; y++) yearSel.innerHTML += `<option value="${y}" ${y==currentYear?'selected':''}>${y}</option>`;
+        
+        const monthSel = document.getElementById('month-select');
+        for(let m=1; m<=12; m++) monthSel.innerHTML += `<option value="${m}" ${m==currentMonth?'selected':''}>${m}</option>`;
+        
+        const memSel = document.getElementById('member-select');
+        members.forEach(m => memSel.innerHTML += `<option value="${m}">${m}</option>`);
+
+        yearSel.addEventListener('change', (e) => { currentYear = parseInt(e.target.value); loadMonth(); });
+        monthSel.addEventListener('change', (e) => { currentMonth = parseInt(e.target.value); loadMonth(); });
+
+　　　　 fetch(SCRIPT_URL)
+        .then(response => response.json())
+        .then(data => {
+            db = data;
+            loadMonth();
+        })
+        .catch(err => console.error("データ読み込みエラー:", err));
+    }
+
+    function getMonthKey() { return `${currentYear}-${currentMonth}`; }
+    
+    function ensureMonthData() {
+        const key = getMonthKey();
+        if(!db[key]) db[key] = { shifts: {}, requests: {}, holidays: [] };
+    }
+
+    function saveData() {
+        const key = getMonthKey();
+        ensureMonthData();
+    
+    fetch(SCRIPT_URL, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'text/plain;charset=utf-8'
+        },
+        body: JSON.stringify({
+            key: key,
+            data: db[key]
+        })
+    })
+    .then(response => response.json())
+    .then(result => {
+        console.log('スプレッドシートに保存完了:', result);
+    })
+    .catch(err => console.error('保存エラー:', err));
+    
+    updateStats();
+}
+    function setMode(newMode) {
+        mode = newMode;
+        document.getElementById('btn-view').classList.toggle('active', mode === 'view');
+        document.getElementById('btn-request').classList.toggle('active', mode === 'request');
+        document.getElementById('generate-group').style.display = mode === 'view' ? 'flex' : 'none';
+        document.getElementById('request-group').style.display = mode === 'request' ? 'flex' : 'none';
+        loadMonth();
+    }
+
+    // Toggle Holiday Manual Marker
+    function toggleHoliday(event, day) {
+        event.stopPropagation();
+        ensureMonthData();
+        const key = getMonthKey();
+        const idx = db[key].holidays.indexOf(day);
+        if(idx > -1) db[key].holidays.splice(idx, 1);
+        else db[key].holidays.push(day);
+        saveData();
+        loadMonth();
+    }
+
+    function loadMonth() {
+        ensureMonthData();
+        const key = getMonthKey();
+        const mData = db[key];
+        const tbody = document.getElementById('calendar-body');
+        tbody.innerHTML = '';
+        
+        const firstDay = new Date(currentYear, currentMonth - 1, 1).getDay();
+        const daysInMonth = new Date(currentYear, currentMonth, 0).getDate();
+        
+        let date = 1;
+        for (let i = 0; i < 6; i++) {
+            let row = document.createElement('tr');
+            for (let j = 0; j < 7; j++) {
+                let cell = document.createElement('td');
+                if (i === 0 && j < firstDay) {
+                    row.appendChild(cell);
+                } else if (date > daysInMonth) {
+                    row.appendChild(cell);
+                } else {
+                    let d = date;
+                    let isWeekend = (j === 0 || j === 6);
+                    let isHoliday = mData.holidays.includes(d);
+                    let isDayOff = isWeekend || isHoliday;
+                    
+                    let dateClass = j === 0 ? 'sun' : j === 6 ? 'sat' : '';
+                    if(isHoliday) dateClass = 'sun';
+
+                    let headerHtml = `<div class="date-header">
+                        <span class="${dateClass}">${d}</span>
+                        <button class="holiday-toggle" onclick="toggleHoliday(event, ${d})">祝日切替</button>
+                    </div>`;
+                    
+                    let contentHtml = '';
+                    
+                    // Show Requests
+                    if(mData.requests[d] && mData.requests[d].length > 0) {
+                        contentHtml += `<span class="shift-badge bg-ng">休: ${mData.requests[d].join(', ')}</span>`;
+                    }
+
+                    // Show Shifts
+                    if(mData.shifts[d]) {
+                        if(mData.shifts[d].day && mData.shifts[d].day.length > 0)
+                            contentHtml += `<span class="shift-badge bg-day">日: ${mData.shifts[d].day.join(', ')}</span>`;
+                        if(mData.shifts[d].night && mData.shifts[d].night.length > 0)
+                            contentHtml += `<span class="shift-badge bg-night">当: ${mData.shifts[d].night.join(', ')}</span>`;
+                        if(mData.shifts[d].evening && mData.shifts[d].evening.length > 0)
+                            contentHtml += `<span class="shift-badge bg-evening">イ: ${mData.shifts[d].evening.join(', ')}</span>`;
+                    }
+
+                    cell.innerHTML = headerHtml + contentHtml;
+                    cell.onclick = () => handleCellClick(d);
+                    row.appendChild(cell);
+                    date++;
+                }
+            }
+            tbody.appendChild(row);
+            if (date > daysInMonth) break;
+        }
+        updateStats();
+    }
+
+    function handleCellClick(day) {
+        ensureMonthData();
+        const key = getMonthKey();
+        const mData = db[key];
+
+        if (mode === 'request') {
+            const member = document.getElementById('member-select').value;
+            if(!mData.requests[day]) mData.requests[day] = [];
+            
+            const idx = mData.requests[day].indexOf(member);
+            if(idx > -1) mData.requests[day].splice(idx, 1);
+            else mData.requests[day].push(member);
+            
+            saveData();
+            loadMonth();
+        } else {
+            // Edit Shift Mode
+            selectedDate = day;
+            document.getElementById('modal-date-title').innerText = `${currentYear}年${currentMonth}月${day}日 のシフト編集`;
+            
+            const shifts = mData.shifts[day] || { day:[], night:[], evening:[] };
+            
+            ['day', 'night', 'evening'].forEach(type => {
+                const container = document.getElementById(`${type}-members`);
+                container.innerHTML = '';
+                members.forEach(m => {
+                    const checked = shifts[type] && shifts[type].includes(m) ? 'checked' : '';
+                    container.innerHTML += `<label><input type="checkbox" value="${m}" ${checked}> ${m}</label>`;
+                });
+            });
+            
+            document.getElementById('edit-modal').style.display = 'flex';
+        }
+    }
+
+    function closeModal() {
+        document.getElementById('edit-modal').style.display = 'none';
+        selectedDate = null;
+    }
+
+    function saveModalData() {
+        if(!selectedDate) return;
+        const key = getMonthKey();
+        
+        const getChecked = (id) => Array.from(document.querySelectorAll(`#${id} input:checked`)).map(el => el.value);
+        
+        db[key].shifts[selectedDate] = {
+            day: getChecked('day-members'),
+            night: getChecked('night-members'),
+            evening: getChecked('evening-members')
+        };
+        
+        saveData();
+        closeModal();
+        loadMonth();
+    }
+
+    // Heuristic Generator (Best Effort)
+    function generateShift() {
+        if(!confirm('現在のシフトを上書きして自動生成しますか？（休み希望は維持されます）')) return;
+        
+        ensureMonthData();
+        const key = getMonthKey();
+        const mData = db[key];
+        mData.shifts = {}; // clear current
+
+        const daysInMonth = new Date(currentYear, currentMonth, 0).getDate();
+        
+        // Track recent shifts to prevent consecutive days (Rule 6)
+        let lastWorked = {}; 
+        members.forEach(m => lastWorked[m] = -99); // Day last worked
+
+        // Simple tracker for balancing within the month
+        let counts = {};
+        members.forEach(m => counts[m] = { w_night:0, w_eve:0, h_night:0, h_day:0, total:0 });
+
+        for(let day=1; day<=daysInMonth; day++) {
+            let dateObj = new Date(currentYear, currentMonth-1, day);
+            let dayOfWeek = dateObj.getDay();
+            let isWeekend = (dayOfWeek === 0 || dayOfWeek === 6);
+            let isHoliday = mData.holidays.includes(day);
+            let isDayOff = isWeekend || isHoliday;
+            
+            let isFriday = (dayOfWeek === 5);
+            // 2nd Tue/Wed (Rule 5)
+            let isSecondWeek = (day >= 8 && day <= 14);
+            let isSecondTueWed = isSecondWeek && (dayOfWeek === 2 || dayOfWeek === 3);
+
+            let reqOff = mData.requests[day] || [];
+            
+            // Available candidates (Not requested off, didn't work yesterday)
+            let available = members.filter(m => !reqOff.includes(m) && (day - lastWorked[m]) > 1);
+
+            mData.shifts[day] = { day:[], night:[], evening:[] };
+
+            // Function to pick best candidate to balance stats
+            const pickCandidate = (statKey) => {
+                if(available.length === 0) return null;
+                // Sort by specific stat, then total stat, to ensure balance
+                available.sort((a, b) => {
+                    if (counts[a][statKey] !== counts[b][statKey]) return counts[a][statKey] - counts[b][statKey];
+                    return counts[a].total - counts[b].total;
+                });
+                let chosen = available.shift(); // take first
+                counts[chosen][statKey]++;
+                counts[chosen].total++;
+                lastWorked[chosen] = day;
+                return chosen;
+            };
+
+            if (isDayOff) {
+                // Rule 2: 土日祝は日直2人と当直1人
+                let d1 = pickCandidate('h_day');
+                let d2 = pickCandidate('h_day');
+                let n1 = pickCandidate('h_night');
+                
+                if(d1) mData.shifts[day].day.push(d1);
+                if(d2) mData.shifts[day].day.push(d2);
+                if(n1) mData.shifts[day].night.push(n1);
+
+            } else {
+                // Weekday
+                if (isFriday || isSecondTueWed) {
+                    // Rule 4 & 5: No shifts
+                    continue; 
+                } else {
+                    // Rule 1: 月〜木は当直1, イブニング当直1
+                    let n1 = pickCandidate('w_night');
+                    let e1 = pickCandidate('w_eve');
+                    
+                    if(n1) mData.shifts[day].night.push(n1);
+                    if(e1) mData.shifts[day].evening.push(e1);
+                }
+            }
+        }
+        
+        saveData();
+        loadMonth();
+        alert('生成が完了しました。条件が厳しすぎる場合（休みの被り等）空欄になることがあります。手動で微調整してください。');
+    }
+
+    function clearShift() {
+        if(confirm('今月のシフトデータをすべて消去しますか？（休み希望は消えません）')) {
+            db[getMonthKey()].shifts = {};
+            saveData();
+            loadMonth();
+        }
+    }
+
+    function updateStats() {
+        ensureMonthData();
+        const mData = db[getMonthKey()];
+        const tbody = document.getElementById('stats-body');
+        tbody.innerHTML = '';
+
+        let stats = {};
+        members.forEach(m => stats[m] = { w_night:0, w_eve:0, h_night:0, h_day:0, req:0 });
+
+        const daysInMonth = new Date(currentYear, currentMonth, 0).getDate();
+        
+        for(let day=1; day<=daysInMonth; day++) {
+            let dateObj = new Date(currentYear, currentMonth-1, day);
+            let dayOfWeek = dateObj.getDay();
+            let isDayOff = (dayOfWeek === 0 || dayOfWeek === 6) || mData.holidays.includes(day);
+
+            // Count Requests
+            if(mData.requests[day]) {
+                mData.requests[day].forEach(m => { if(stats[m]) stats[m].req++; });
+            }
+
+            // Count Shifts
+            if(mData.shifts[day]) {
+                const s = mData.shifts[day];
+                s.day.forEach(m => { if(stats[m] && isDayOff) stats[m].h_day++; });
+                s.night.forEach(m => { 
+                    if(stats[m]) { isDayOff ? stats[m].h_night++ : stats[m].w_night++; }
+                });
+                s.evening.forEach(m => { if(stats[m] && !isDayOff) stats[m].w_eve++; });
+            }
+        }
+
+        members.forEach(m => {
+            let total = stats[m].w_night + stats[m].w_eve + stats[m].h_night + stats[m].h_day;
+            tbody.innerHTML += `
+                <tr>
+                    <td><strong>${m}</strong></td>
+                    <td>${stats[m].w_night}</td>
+                    <td>${stats[m].w_eve}</td>
+                    <td>${stats[m].h_night}</td>
+                    <td>${stats[m].h_day}</td>
+                    <td style="font-weight:bold; color:var(--accent);">${total}</td>
+                    <td style="color:#7f8c8d;">${stats[m].req}</td>
+                </tr>
+            `;
+        });
+    }
+
+    window.onload = init;
+</script>
+
+</body>
+</html>
