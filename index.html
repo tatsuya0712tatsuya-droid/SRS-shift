@@ -1,611 +1,973 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SRS ~Sunagawa Resident Shift~</title>
-    <style>
-        :root {
-            --primary: #2c3e50;
-            --secondary: #34495e;
-            --accent: #3498db;
-            --bg: #ecf0f1;
-            --white: #ffffff;
-            --border: #bdc3c7;
-            --day-bg: #f9f9f9;
-            --sat-color: #2980b9;
-            --sun-color: #c0392b;
-        }
-        body {
-            font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', Meiryo, sans-serif;
-            background-color: var(--bg);
-            color: var(--primary);
-            margin: 0;
-            padding: 20px;
-        }
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            background: var(--white);
-            padding: 20px 30px;
-            border-radius: 8px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-        }
-        h1 {
-            text-align: center;
-            color: var(--primary);
-            border-bottom: 2px solid var(--accent);
-            padding-bottom: 10px;
-        }
-        .controls {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-wrap: wrap;
-            margin-bottom: 20px;
-            padding: 15px;
-            background: var(--bg);
-            border-radius: 6px;
-        }
-        .controls-group {
-            display: flex;
-            gap: 15px;
-            align-items: center;
-        }
-        select, button {
-            padding: 8px 12px;
-            font-size: 16px;
-            border: 1px solid var(--border);
-            border-radius: 4px;
-        }
-        button {
-            background-color: var(--accent);
-            color: var(--white);
-            cursor: pointer;
-            border: none;
-            transition: background 0.3s;
-        }
-        button:hover { background-color: #2980b9; }
-        
-        .mode-selector {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 15px;
-        }
-        .mode-btn {
-            background-color: var(--secondary);
-        }
-        .mode-btn.active {
-            background-color: var(--accent);
-            font-weight: bold;
-        }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SRS - Sunagawa Resident Shift</title>
+  <style>
+    /* ========== モダンでシンプルなデザイン設定 ========== */
+    :root {
+      --bg-page: #f8fafc;
+      --bg-card: #ffffff;
+      --text-main: #334155;
+      --text-muted: #64748b;
+      --border: #e2e8f0;
+      
+      --primary: #334155;
+      --primary-hover: #1e293b;
+      --accent: #0ea5e9;
+      --accent-hover: #0284c7;
+      --danger: #ef4444;
+      --danger-hover: #dc2626;
 
-        /* Calendar Grid */
-        .calendar {
-            width: 100%;
-            border-collapse: collapse;
-            margin-bottom: 30px;
-        }
-        .calendar th, .calendar td {
-            border: 1px solid var(--border);
-            padding: 10px;
-            text-align: left;
-            vertical-align: top;
-        }
-        .calendar th {
-            background-color: var(--secondary);
-            color: var(--white);
-            text-align: center;
-        }
-        .calendar td {
-            background-color: var(--day-bg);
-            height: 100px;
-            width: 14.28%;
-            cursor: pointer;
-            transition: background 0.2s;
-        }
-        .calendar td:hover { background-color: #e8f4f8; }
-        .date-header {
-            display: flex;
-            justify-content: space-between;
-            font-weight: bold;
-            margin-bottom: 5px;
-        }
-        .sat { color: var(--sat-color); }
-        .sun, .holiday-text { color: var(--sun-color); }
-        
-        .shift-badge {
-            display: block;
-            font-size: 12px;
-            padding: 3px 5px;
-            margin-bottom: 3px;
-            border-radius: 3px;
-            color: white;
-        }
-        .bg-day { background-color: #f39c12; }
-        .bg-night { background-color: #8e44ad; }
-        .bg-evening { background-color: #16a085; }
-        .bg-ng { background-color: #7f8c8d; }
+      --sat-bg: #f0f9ff;
+      --sun-bg: #fef2f2;
+      --sun-text: #b91c1c;
+    }
 
-        /* Stats Table */
-        .stats-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 20px;
-            font-size: 14px;
-        }
-        .stats-table th, .stats-table td {
-            border: 1px solid var(--border);
-            padding: 8px;
-            text-align: center;
-        }
-        .stats-table th { background-color: var(--secondary); color: white; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      background-color: var(--bg-page);
+      color: var(--text-main);
+      margin: 0;
+      padding: 20px;
+      -webkit-font-smoothing: antialiased;
+    }
 
-        /* Modal */
-        .modal {
-            display: none;
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.5);
-            justify-content: center;
-            align-items: center;
-        }
-        .modal-content {
-            background: white;
-            padding: 20px;
-            border-radius: 8px;
-            width: 90%;
-            max-width: 500px;
-        }
-        .modal-header { font-size: 18px; font-weight: bold; margin-bottom: 15px; }
-        .member-checkboxes { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px;}
-        .form-group { margin-bottom: 15px; border-bottom: 1px solid #eee; padding-bottom: 10px;}
-        .modal-actions { display: flex; justify-content: flex-end; gap: 10px; }
-        
-        /* Holiday Toggle */
-        .holiday-toggle { font-size: 10px; background: #eee; border: 1px solid #ccc; cursor: pointer; padding: 2px 5px; border-radius: 3px; }
-    </style>
+    /* ヘッダー */
+    header {
+      background-color: var(--bg-card);
+      padding: 20px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+      border: 1px solid var(--border);
+    }
+    h1 { margin: 0; font-size: 22px; font-weight: 700; color: var(--primary); letter-spacing: 1px; }
+
+    /* 操作バー・コントロールパネル */
+    .card-panel {
+      background: var(--bg-card); padding: 16px 20px; border-radius: 8px; margin-bottom: 20px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05); border: 1px solid var(--border);
+      display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;
+    }
+
+    .operator-area { display: flex; align-items: center; gap: 10px; }
+    .operator-area label { font-weight: 600; font-size: 14px; }
+    .operator-area select {
+      font-size: 15px; font-weight: 600; padding: 8px 12px;
+      border: 1px solid var(--border); border-radius: 6px;
+      color: var(--primary); background: #f8fafc; cursor: pointer; outline: none; transition: all 0.2s;
+    }
+    .operator-area select:focus { border-color: var(--accent); background: white; }
+
+    .controls-group { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+    
+    select.date-select { padding: 8px 12px; font-size: 14px; border: 1px solid var(--border); border-radius: 6px; background: #fff; cursor: pointer; outline: none; }
+
+    button {
+      padding: 8px 16px; font-size: 14px; font-weight: 600; border-radius: 6px; border: none; cursor: pointer;
+      transition: all 0.2s ease; display: inline-flex; align-items: center; justify-content: center;
+    }
+    button:active { transform: scale(0.98); }
+
+    .btn-primary { background-color: var(--primary); color: white; }
+    .btn-primary:hover { background-color: var(--primary-hover); }
+    .btn-accent { background-color: var(--accent); color: white; }
+    .btn-accent:hover { background-color: var(--accent-hover); }
+    .btn-danger { background-color: var(--danger); color: white; }
+    .btn-danger:hover { background-color: var(--danger-hover); }
+    .btn-outline { background-color: transparent; border: 1px solid var(--border); color: var(--text-main); }
+    .btn-outline:hover { background-color: var(--bg-page); border-color: #cbd5e1; }
+
+    .btn-micro {
+      font-size: 11px; padding: 2px 6px; background: var(--bg-page); color: var(--text-muted);
+      border: 1px solid var(--border); border-radius: 4px; margin-top: 6px; cursor: pointer; display: block; margin-left: auto; margin-right: auto;
+    }
+    .btn-micro:hover { background: #e2e8f0; color: var(--primary); }
+
+    /* テーブルデザイン */
+    .table-container { background: var(--bg-card); border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); border: 1px solid var(--border); overflow: hidden; margin-bottom: 30px; }
+    table { width: 100%; border-collapse: collapse; background: var(--bg-card); }
+    th, td { border-bottom: 1px solid var(--border); border-right: 1px solid var(--border); padding: 10px 8px; text-align: center; vertical-align: middle; }
+    th:last-child, td:last-child { border-right: none; }
+    tr:last-child td { border-bottom: none; }
+    
+    th { background-color: #f1f5f9; font-weight: 600; font-size: 13px; color: var(--text-muted); padding: 12px 8px; }
+    
+    .sat { background-color: var(--sat-bg); }
+    .sun, .holi { background-color: var(--sun-bg); color: var(--sun-text); }
+    .clickable { cursor: pointer; transition: background 0.1s; }
+    .clickable:hover { background-color: #f1f5f9; }
+    .empty-slot { color: var(--danger); font-weight: 600; font-size: 12px; margin-top: 4px; }
+    
+    .member-tag { display: inline-block; background: #f1f5f9; padding: 3px 8px; border-radius: 4px; margin: 2px; font-size: 13px; border: 1px solid #cbd5e1; font-weight: 500; }
+    .req-tag { background: #fffbeb; border-color: #fde68a; color: #92400e; }
+    /* 手入力（固定）シフト */
+    .member-tag.is-fixed { border: 1px dashed #64748b; background: #fff; }
+    .member-tag .fix-mark { font-size: 9px; font-weight: 700; color: #fff; background: #64748b; border-radius: 3px; padding: 0 3px; margin-left: 4px; vertical-align: 1px; }
+    .member-tag.is-me .fix-mark { background: #065f46; }
+    .over-slot { color: #b45309; font-weight: 600; font-size: 12px; margin-top: 4px; }
+    .cap-note { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+    .cap-table { width: 100%; border-collapse: collapse; }
+    .cap-table th, .cap-table td { padding: 8px 6px; font-size: 13px; border-bottom: 1px solid var(--border); text-align: center; }
+    .cap-table th { background: transparent; }
+    .cap-table td:first-child { text-align: left; font-weight: 600; }
+    .cap-table input { width: 52px; padding: 6px; border: 1px solid var(--border); border-radius: 4px; text-align: center; }
+    .modal-hint { font-size: 12px; color: var(--text-muted); background: var(--bg-page); border: 1px solid var(--border); border-radius: 6px; padding: 8px 10px; margin-top: 12px; line-height: 1.5; }
+    .opt-label { display: flex; align-items: center; gap: 6px; font-size: 13px; margin-top: 10px; cursor: pointer; }
+
+    /* 操作者ハイライト用 */
+    @keyframes flash-green {
+      0% { background-color: #bef264; box-shadow: inset 0 0 0 4px #84cc16; }
+      100% { background-color: #ecfdf5; box-shadow: inset 0 0 0 2px #34d399; }
+    }
+    .my-shift-cell { background-color: #ecfdf5 !important; box-shadow: inset 0 0 0 2px #34d399; animation: flash-green 0.7s ease-out; }
+    .member-tag.is-me { background: #10b981; color: white; border-color: #059669; font-weight: 700; box-shadow: 0 2px 4px rgba(16, 185, 129, 0.3); }
+    
+    /* 内訳バッジ */
+    .bd-container { display: flex; gap: 3px; justify-content: center; flex-wrap: wrap; margin-top: 6px; }
+    .bd-badge { font-size: 10px; padding: 2px 4px; border-radius: 4px; border: 1px solid #e2e8f0; }
+    .bd-zero { color: #94a3b8; background: transparent; }
+    .bd-active { color: white; background: var(--primary); font-weight: 600; border-color: var(--primary); }
+
+    /* モーダル群 */
+    #modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.4); backdrop-filter: blur(2px); display: none; z-index: 100; }
+    .modal-box { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: var(--bg-card); padding: 24px; border-radius: 12px; display: none; z-index: 101; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04); width: 90%; max-width: 450px; max-height: 85vh; overflow-y: auto; }
+    .modal-box h3 { margin-top: 0; margin-bottom: 20px; font-size: 18px; font-weight: 600; color: var(--primary); border-bottom: 1px solid var(--border); padding-bottom: 12px; }
+    .modal-actions { display: flex; justify-content: flex-end; gap: 12px; margin-top: 24px; }
+    .checkbox-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 10px; }
+    .checkbox-grid label { display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 15px; }
+
+    /* カレンダー・休み・ログ */
+    .cal-header-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+    .cal-header-row select { padding: 6px 10px; border-radius: 6px; border: 1px solid var(--border); outline: none; }
+    .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
+    .cal-day-label { text-align: center; font-weight: 600; padding: 6px; color: var(--text-muted); font-size: 13px; }
+    .cal-cell { text-align: center; padding: 12px 4px; border: 1px solid var(--border); border-radius: 6px; cursor: pointer; font-weight: 500; font-size:13px; transition: border-color 0.2s; }
+    .cal-cell:hover { border-color: var(--accent); background: #f8fafc; }
+    .cal-cell.req-full { background: #fef2f2; color: var(--danger); border-color: #fca5a5; }
+    .cal-cell.req-partial { background: #fffbeb; color: #b45309; border-color: #fde68a; }
+    .cal-empty { background: transparent; border: none; pointer-events: none; }
+    .holi-list { display: flex; flex-direction: column; gap: 8px; }
+    .holi-item { display: flex; justify-content: space-between; padding: 10px 12px; background: var(--bg-page); border: 1px solid var(--border); border-radius: 6px; font-size: 14px; }
+    .holi-item.is-holi { background: #fef2f2; border-color: #fca5a5; font-weight: 600; color: var(--danger); }
+    .req-table { width: 100%; border-collapse: collapse; }
+    .req-table th, .req-table td { padding: 8px; font-size: 14px; text-align: center; border-bottom: 1px solid var(--border); }
+    .req-table th { background: transparent; border-bottom: 2px solid var(--border); }
+    .log-item { border-bottom: 1px solid var(--border); padding: 10px 0; font-size: 14px; }
+    .log-item:last-child { border-bottom: none; }
+    .log-time { color: var(--text-muted); font-size: 12px; margin-right: 8px; }
+    .log-user { font-weight: 600; color: var(--accent); }
+    .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+    .section-header h2 { margin: 0; font-size: 18px; font-weight: 600; color: var(--primary); }
+  </style>
 </head>
 <body>
 
-<div class="container">
-    <h1>SRS ~Sunagawa Resident Shift~</h1>
-    
-    <div class="mode-selector">
-        <button class="mode-btn active" id="btn-view" onclick="setMode('view')">シフト確認・編集モード</button>
-        <button class="mode-btn" id="btn-request" onclick="setMode('request')">休み希望入力モード</button>
-    </div>
+  <header>
+    <h1>SRS - Sunagawa Resident Shift</h1>
+  </header>
 
-    <div class="controls">
+  <div class="card-panel">
+    <div class="operator-area">
+      <label>操作者を選択:</label>
+      <select id="operator-select" onchange="saveOperatorLocally(); render();">
+        <option value="">-- 未選択 --</option>
+      </select>
+    </div>
+    <button class="btn-outline" onclick="openLogModal()">操作履歴を確認</button>
+  </div>
+
+  <div class="card-panel">
     <div class="controls-group">
-        <select id="year-select"></select> 年
-        <select id="month-select"></select> 月
-        <button onclick="loadMonth()">表示</button>
-        <button onclick="fetchSpreadsheetData()" style="background-color: #e67e22; font-size: 14px;">🔄 最新データに更新</button>
+      <select id="year-select" class="date-select" onchange="changeMonth()"></select>
+      <span style="font-weight:600; color:var(--text-muted);">年</span>
+      <select id="month-select" class="date-select" onchange="changeMonth()"></select>
+      <span style="font-weight:600; color:var(--text-muted);">月</span>
+      <button class="btn-outline" onclick="goToThisMonth()">今月</button>
     </div>
-    <div class="controls-group" id="generate-group">
-        <button onclick="generateShift()" style="background-color: #27ae60;">自動生成する</button>
-        <button onclick="clearShift()" style="background-color: #c0392b;">シフトをクリア</button>
+    <div class="controls-group">
+      <button class="btn-outline" onclick="openCalendarModal()">休み希望入力</button>
+      <button class="btn-outline" onclick="openHolidayModal()">祝日設定</button>
+      <button class="btn-outline" onclick="openDefaultCapModal()">必要人数の一括設定</button>
     </div>
-        </div>
-        <div class="controls-group" id="request-group" style="display: none;">
-            <select id="member-select"></select>
-            <span>（カレンダーの日付をクリックして休み希望をON/OFF）</span>
-        </div>
+    <div class="controls-group" style="margin-left: auto;">
+      <button class="btn-outline" onclick="clearAutoShift()">自動生成分のみクリア</button>
+      <button class="btn-danger" onclick="clearShift()">シフトをクリア</button>
+      <button class="btn-accent" onclick="generateShift()">シフト自動生成</button>
     </div>
+  </div>
 
-    <table class="calendar">
-        <thead>
-            <tr>
-                <th class="sun">日</th><th>月</th><th>火</th><th>水</th><th>木</th><th>金</th><th class="sat">土</th>
-            </tr>
-        </thead>
-        <tbody id="calendar-body"></tbody>
+  <div class="table-container">
+    <table id="shift-table">
+      <thead>
+        <tr>
+          <th width="8%">日付</th>
+          <th width="6%">曜日</th>
+          <th width="24%">休み希望</th>
+          <th width="20%">日直 (8:30-17:00)</th>
+          <th width="21%">当直 (17:00-8:30)</th>
+          <th width="21%">ｲﾌﾞﾆﾝｸﾞ (17:00-22:00)</th>
+        </tr>
+      </thead>
+      <tbody id="shift-tbody"></tbody>
     </table>
+  </div>
 
-    <div id="stats-container">
-        <h3>当月シフト内訳</h3>
-        <table class="stats-table" id="stats-table">
-            <thead>
-                <tr>
-                    <th>氏名</th>
-                    <th>平日当直</th>
-                    <th>平日イブニング</th>
-                    <th>土日祝当直</th>
-                    <th>土日祝日直</th>
-                    <th>当月合計</th>
-                    <th>休み希望</th>
-                </tr>
-            </thead>
-            <tbody id="stats-body"></tbody>
-        </table>
+  <div class="section-header">
+    <h2>シフト内訳 (今月)</h2>
+    <button class="btn-outline" onclick="toggleYearlyTable()">年間詳細データを表示</button>
+  </div>
+  <div class="table-container">
+    <table id="monthly-summary-table">
+      <thead>
+        <tr>
+          <th width="10%">名前</th>
+          <th width="6%">計</th>
+          <th width="6%">木当<br><span style="font-size:10px">8月~</span></th>
+          <th width="26%">当直 (内訳)</th>
+          <th width="26%">ｲﾌﾞﾆﾝｸﾞ (内訳)</th>
+          <th width="26%">日直 (内訳)</th>
+        </tr>
+      </thead>
+      <tbody id="monthly-summary-tbody"></tbody>
+    </table>
+  </div>
+
+  <div id="yearly-summary-container" style="display: none; margin-top: 30px;">
+    <div class="section-header"><h2>シフト内訳 (今年度累計)</h2></div>
+    <div class="table-container">
+      <table id="yearly-summary-table">
+        <thead>
+          <tr>
+            <th width="10%">名前</th>
+            <th width="6%">計</th>
+            <th width="6%">木当<br><span style="font-size:10px">8月~</span></th>
+            <th width="26%">当直 (内訳)</th>
+            <th width="26%">ｲﾌﾞﾆﾝｸﾞ (内訳)</th>
+            <th width="26%">日直 (内訳)</th>
+          </tr>
+        </thead>
+        <tbody id="yearly-summary-tbody"></tbody>
+      </table>
     </div>
-</div>
+  </div>
 
-<div class="modal" id="edit-modal">
-    <div class="modal-content">
-        <div class="modal-header" id="modal-date-title"></div>
-        
-        <div class="form-group">
-            <label><strong>日直 (8:30-17:00) ※土日祝のみ</strong></label>
-            <div class="member-checkboxes" id="day-members"></div>
-        </div>
-        <div class="form-group">
-            <label><strong>当直 (17:00-翌8:30)</strong></label>
-            <div class="member-checkboxes" id="night-members"></div>
-        </div>
-        <div class="form-group">
-            <label><strong>イブニング当直 (17:00-22:00)</strong></label>
-            <div class="member-checkboxes" id="evening-members"></div>
-        </div>
-        
-        <div class="modal-actions">
-            <button onclick="closeModal()" style="background: #95a5a6;">キャンセル</button>
-            <button onclick="saveModalData()">保存</button>
-        </div>
+  <div id="modal-overlay" onclick="closeAllModals()"></div>
+
+  <div id="capacity-modal" class="modal-box" style="max-width: 320px;">
+    <h3 id="cap-modal-title">必要人数の設定</h3>
+    <div style="display:flex; flex-direction:column; gap:16px; margin:15px 0;">
+      <label style="display:flex; justify-content:space-between; align-items:center; font-weight:500;">日直:<input type="number" id="cap-day" min="0" max="10" style="width:60px; padding:6px; border:1px solid var(--border); border-radius:4px; text-align:center;"></label>
+      <label style="display:flex; justify-content:space-between; align-items:center; font-weight:500;">当直:<input type="number" id="cap-night" min="0" max="10" style="width:60px; padding:6px; border:1px solid var(--border); border-radius:4px; text-align:center;"></label>
+      <label style="display:flex; justify-content:space-between; align-items:center; font-weight:500;">ｲﾌﾞﾆﾝｸﾞ:<input type="number" id="cap-eve" min="0" max="10" style="width:60px; padding:6px; border:1px solid var(--border); border-radius:4px; text-align:center;"></label>
     </div>
-</div>
+    <div class="cap-note" id="cap-default-note"></div>
+    <div class="modal-actions" style="justify-content:space-between;">
+      <button onclick="resetCapacity()" class="btn-outline" style="font-size:12px; padding:6px 10px;">デフォルトに戻す</button>
+      <div style="display:flex; gap:8px;"><button onclick="closeAllModals()" class="btn-outline">キャンセル</button><button onclick="saveCapacity()" class="btn-primary">保存</button></div>
+    </div>
+  </div>
 
-<script>
-    const members = ['熊谷達也', '熊谷颯太', '本田愛珠', '須田彩月', '旗本雄太', '木村友哉', '高橋佑奈', '三浦拓己', '西堀元樹', '渡邊万希子'];
-    const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbznv_vdW4nqw_Cl_c3claR0W6wH9kGKuYaa4DaSPbpH4GoXIquqhWLXjwZ9awDQPXqg/exec';
+  <div id="default-cap-modal" class="modal-box" style="max-width: 480px;">
+    <h3 id="default-cap-title">必要人数の一括設定</h3>
+    <table class="cap-table">
+      <tr><th>区分</th><th>日直</th><th>当直</th><th>ｲﾌﾞﾆﾝｸﾞ</th></tr>
+      <tr><td>平日 (月〜木)</td><td><input type="number" min="0" max="10" id="dc-weekday-day"></td><td><input type="number" min="0" max="10" id="dc-weekday-night"></td><td><input type="number" min="0" max="10" id="dc-weekday-eve"></td></tr>
+      <tr><td>金曜・第2火水</td><td><input type="number" min="0" max="10" id="dc-off-day"></td><td><input type="number" min="0" max="10" id="dc-off-night"></td><td><input type="number" min="0" max="10" id="dc-off-eve"></td></tr>
+      <tr><td>土日祝</td><td><input type="number" min="0" max="10" id="dc-holiday-day"></td><td><input type="number" min="0" max="10" id="dc-holiday-night"></td><td><input type="number" min="0" max="10" id="dc-holiday-eve"></td></tr>
+    </table>
+    <label class="opt-label"><input type="checkbox" id="dc-save-global"> 今後の月の標準人数としても保存する</label>
+    <label class="opt-label"><input type="checkbox" id="dc-clear-daily"> この月の日別の個別人数設定をリセットする</label>
+    <div class="modal-hint">この月の各日の必要人数が区分ごとに変わります。日別に変えたい日は、日付欄の「人数設定」で個別に上書きできます（個別設定が優先）。シフト自動生成はここで設定した人数に従います。</div>
+    <div class="modal-actions" style="justify-content:space-between;">
+      <button onclick="resetDefaultCap()" class="btn-outline" style="font-size:12px; padding:6px 10px;">標準に戻す</button>
+      <div style="display:flex; gap:8px;"><button onclick="closeAllModals()" class="btn-outline">キャンセル</button><button onclick="saveDefaultCap()" class="btn-primary">保存</button></div>
+    </div>
+  </div>
 
-    // State
-    let currentYear = new Date().getFullYear() < 2026 ? 2026 : new Date().getFullYear();
-    let currentMonth = new Date().getMonth() + 1;
-    let mode = 'view'; // 'view' or 'request'
-    let selectedDate = null;
+  <div id="modal-content" class="modal-box">
+    <h3 id="modal-title">編集</h3><div id="modal-body-container"></div>
+    <div class="modal-actions"><button onclick="closeAllModals()" class="btn-outline">キャンセル</button><button onclick="saveModal()" class="btn-primary">保存</button></div>
+  </div>
+
+  <div id="calendar-modal" class="modal-box" style="max-width: 450px;">
+    <h3>休み希望の入力</h3>
+    <div class="cal-header-row"><select id="cal-member-select" onchange="renderCalendar()"></select><span style="font-weight:600; color:var(--primary);" id="cal-month-label"></span></div>
+    <div class="cal-grid" id="cal-grid"></div>
+    <div class="modal-actions"><button onclick="closeAllModals()" class="btn-outline">閉じる</button><button onclick="saveCalendarRequests()" class="btn-primary">反映してログに残す</button></div>
+  </div>
+
+  <div id="req-detail-modal" class="modal-box" style="max-width: 300px; z-index: 102;">
+    <h3 id="req-detail-title">休み希望の詳細</h3>
+    <div style="display:flex; flex-direction:column; gap:16px; margin:20px 0;">
+      <label style="font-weight:600; color:var(--danger); display:flex; align-items:center; gap:8px;"><input type="checkbox" id="chk-req-all" onchange="toggleAllReqs()" style="transform:scale(1.2);"> 全て休む (全休)</label>
+      <hr style="margin:0; border:0; border-top:1px dashed #cbd5e1;">
+      <label style="display:flex; align-items:center; gap:8px;"><input type="checkbox" id="chk-req-day" class="sub-req" onchange="checkSubReqs()"> 日直を休む</label>
+      <label style="display:flex; align-items:center; gap:8px;"><input type="checkbox" id="chk-req-night" class="sub-req" onchange="checkSubReqs()"> 当直を休む</label>
+      <label style="display:flex; align-items:center; gap:8px;"><input type="checkbox" id="chk-req-eve" class="sub-req" onchange="checkSubReqs()"> ｲﾌﾞﾆﾝｸﾞを休む</label>
+    </div>
+    <div class="modal-actions"><button onclick="closeReqDetailModal()" class="btn-outline">キャンセル</button><button onclick="saveReqDetail()" class="btn-primary">決定</button></div>
+  </div>
+
+  <div id="holiday-modal" class="modal-box">
+    <h3 id="holi-modal-title">祝日の変更</h3><div id="holi-list" class="holi-list"></div>
+    <div class="modal-actions"><button onclick="closeAllModals()" class="btn-outline">キャンセル</button><button onclick="saveHolidayModal()" class="btn-primary">保存</button></div>
+  </div>
+
+  <div id="log-modal" class="modal-box" style="max-width: 500px;">
+    <h3>操作履歴 (直近50件)</h3><div id="log-list" style="max-height:300px; overflow-y:auto;"></div>
+    <div class="modal-actions"><button onclick="closeAllModals()" class="btn-outline">閉じる</button></div>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-app.js";
+    import { getFirestore, doc, onSnapshot, setDoc } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyAlzQ2X3B7f9MBengm4r__dc5CbSpLlqzY",
+      authDomain: "srs-shift.firebaseapp.com",
+      projectId: "srs-shift",
+      storageBucket: "srs-shift.firebasestorage.app",
+      messagingSenderId: "806900213342",
+      appId: "1:806900213342:web:a887991cf7e90e1576b6cf"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const docRef = doc(db, "srs_shift_app", "main_data");
+
+    const members = ["熊谷達也", "熊谷颯太", "本田愛珠", "須田彩月", "旗本雄太", "木村友哉", "高橋佑奈", "三浦拓己", "西堀元樹", "渡邊万希子"];
+    const daysStr = ["日", "月", "火", "水", "木", "金", "土"];
+    const daysStrEx = ["日", "月", "火", "水", "木", "金", "土", "祝"];
+    const defaultHolidays = ["2026-01-01","2026-01-12","2026-02-11","2026-02-23","2026-03-20","2026-04-29","2026-05-03","2026-05-04","2026-05-05","2026-05-06","2026-07-20","2026-08-11","2026-09-21","2026-09-22","2026-09-23","2026-10-12","2026-11-03","2026-11-23"];
+
+    // サイトを開いた時は「今月」を表示
+    const TODAY = new Date();
+    let currentYear = TODAY.getFullYear(); let currentMonth = TODAY.getMonth() + 1;
+
+    // 必要人数の標準値（区分ごと）。「必要人数の一括設定」で月ごと／全体で変更可能
+    const BUILTIN_TYPE_CAPS = {
+      weekday: { day: 0, night: 1, eve: 1 },  // 平日(月〜木)
+      off:     { day: 0, night: 0, eve: 0 },  // 金曜・第2火水
+      holiday: { day: 2, night: 1, eve: 0 }   // 土日祝
+    };
+    const SHIFT_TYPES = ['day', 'night', 'eve'];
+    const TYPE_NAMES = { day: "日直", night: "当直", eve: "ｲﾌﾞﾆﾝｸﾞ" };
+    let srsData = { logs: [] }; 
+    let modalTarget = { date: null, type: null }; 
+    let currentCapacityTarget = null;
+    let tempCalendarReqs = {}; 
+    let currentDetailTarget = { day: null, member: null }; 
+
+    initSelectBoxes();
+
+    onSnapshot(docRef, (docSnap) => {
+      if (docSnap.exists()) {
+        srsData = docSnap.data();
+        if (!srsData.logs) srsData.logs = [];
+      }
+      render(); 
+    });
+
+    function initSelectBoxes() {
+      const ys = document.getElementById('year-select');
+      const yStart = Math.min(2026, currentYear - 1), yEnd = Math.max(2028, currentYear + 2);
+      for (let y = yStart; y <= yEnd; y++) ys.add(new Option(y, y));
+      ys.value = currentYear;
+
+      const ms = document.getElementById('month-select');
+      for (let m = 1; m <= 12; m++) ms.add(new Option(m, m));
+      ms.value = currentMonth;
+
+      const ops = document.getElementById('operator-select');
+      members.forEach(m => ops.add(new Option(m, m)));
+      
+      const savedOp = localStorage.getItem('srs_operator');
+      if (savedOp && members.includes(savedOp)) ops.value = savedOp;
+    }
+
+    window.saveOperatorLocally = function() {
+      const op = document.getElementById('operator-select').value;
+      localStorage.setItem('srs_operator', op);
+      const tbody = document.getElementById('shift-tbody'); tbody.innerHTML = ''; setTimeout(() => render(), 10);
+    }
+
+    function checkOperator() {
+      const op = document.getElementById('operator-select').value;
+      if (!op) { alert("操作を行う前に、画面左上の「操作者を選択」からご自身を選んでください。"); return null; }
+      return op;
+    }
+
+    function addLog(actionText, operator) {
+      if (!srsData.logs) srsData.logs = [];
+      const now = new Date(); const timeStr = `${now.getMonth()+1}/${now.getDate()} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+      srsData.logs.unshift({ time: timeStr, user: operator, action: actionText });
+      if (srsData.logs.length > 50) srsData.logs.pop();
+    }
+
+    window.openLogModal = function() {
+      const list = document.getElementById('log-list');
+      list.innerHTML = (srsData.logs && srsData.logs.length > 0) ? srsData.logs.map(lg => `<div class="log-item"><span class="log-time">${lg.time}</span> <span class="log-user">${lg.user}</span> が <span>${lg.action}</span></div>`).join('') : "<p style='color:var(--text-muted);'>履歴はありません</p>";
+      document.getElementById('modal-overlay').style.display = 'block'; document.getElementById('log-modal').style.display = 'block';
+    }
+
+    window.goToThisMonth = function() {
+      const now = new Date(); currentYear = now.getFullYear(); currentMonth = now.getMonth() + 1;
+      document.getElementById('year-select').value = currentYear; document.getElementById('month-select').value = currentMonth; render();
+    }
+    window.changeMonth = function() { currentYear = parseInt(document.getElementById('year-select').value); currentMonth = parseInt(document.getElementById('month-select').value); render(); }
+    async function saveData() { try { await setDoc(docRef, srsData); } catch (e) { console.error(e); alert("保存失敗"); } }
+    function getMonthKey(y, m) { return `${y}-${String(m).padStart(2, '0')}`; }
     
-    // Data Storage Structure (Mock DB in LocalStorage)
-    // srs_data = { "2026-5": { shifts: { "1": { day:[], night:[], evening:[] } }, requests: { "1": ["熊谷達也"] }, holidays: [3, 4, 5] } }
-    let db = {};
-
-function fetchSpreadsheetData() {
-    fetch(SCRIPT_URL)
-        .then(response => response.json())
-        .then(data => {
-            db = data;
-            loadMonth();
-            alert('スプレッドシートから最新データを読み込みました。');
-        })
-        .catch(err => {
-            console.error("データ読み込みエラー:", err);
-            alert('読み込みに失敗しました。');
-        });
-}
-    function init() {
-        const yearSel = document.getElementById('year-select');
-        for(let y=2026; y<=2028; y++) yearSel.innerHTML += `<option value="${y}" ${y==currentYear?'selected':''}>${y}</option>`;
-        
-        const monthSel = document.getElementById('month-select');
-        for(let m=1; m<=12; m++) monthSel.innerHTML += `<option value="${m}" ${m==currentMonth?'selected':''}>${m}</option>`;
-        
-        const memSel = document.getElementById('member-select');
-        members.forEach(m => memSel.innerHTML += `<option value="${m}">${m}</option>`);
-
-        yearSel.addEventListener('change', (e) => { currentYear = parseInt(e.target.value); loadMonth(); });
-        monthSel.addEventListener('change', (e) => { currentMonth = parseInt(e.target.value); loadMonth(); });
-
-　　　　 fetch(SCRIPT_URL)
-        .then(response => response.json())
-        .then(data => {
-            db = data;
-            loadMonth();
-        })
-        .catch(err => console.error("データ読み込みエラー:", err));
+    function parseRequests(reqs) {
+      if (!reqs) return {};
+      if (Array.isArray(reqs)) { let newReqs = {}; reqs.forEach(m => newReqs[m] = ['day', 'night', 'eve']); return newReqs; }
+      return reqs;
     }
 
-    function getMonthKey() { return `${currentYear}-${currentMonth}`; }
+    function ensureMonthData(y, m) {
+      const key = getMonthKey(y, m);
+      if (!srsData[key]) srsData[key] = { requests: {}, shifts: {}, customHolidays: {}, capacities: {} };
+      const md = srsData[key];
+      if (!md.requests) md.requests = {};
+      if (!md.shifts) md.shifts = {};
+      if (!md.customHolidays) md.customHolidays = {};
+      if (!md.capacities) md.capacities = {};
+      if (!md.fixed) md.fixed = {};   // 手入力で確定したメンバー { 日: {day:[],night:[],eve:[]} }
+      if (!md.locked) md.locked = {}; // 自動生成で追加しない枠 { 日: {day:true,...} }
+      Object.keys(md.requests).forEach(d => md.requests[d] = parseRequests(md.requests[d]));
+      return key;
+    }
+
+    function emptyDay() { return { day: [], night: [], eve: [] }; }
+    function getFixed(key, d) { const f = srsData[key].fixed[d]; return f ? { day: f.day || [], night: f.night || [], eve: f.eve || [] } : emptyDay(); }
+    function isLocked(key, d, type) { return !!(srsData[key].locked[d] && srsData[key].locked[d][type]); }
+
+    function isHoliday(y, m, d) {
+      const key = ensureMonthData(y, m);
+      if (srsData[key].customHolidays && srsData[key].customHolidays[d] !== undefined) return srsData[key].customHolidays[d];
+      return defaultHolidays.includes(`${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`);
+    }
+
+    function getDayCategory(y, m, d) {
+      const w = new Date(y, m - 1, d).getDay();
+      const holi = isHoliday(y, m, d);
+      const isSecondTueWed = (w === 2 || w === 3) && d >= 8 && d <= 14;
+      if (holi || w === 0 || w === 6) return 'holiday';
+      if (w === 5 || isSecondTueWed) return 'off';
+      return 'weekday';
+    }
+
+    // 区分ごとの標準人数： 月ごとの設定 → 全体の標準設定 → 組み込み値 の順に優先
+    function getTypeCaps(y, m) {
+      const key = ensureMonthData(y, m);
+      const res = {};
+      ['weekday', 'off', 'holiday'].forEach(cat => {
+        const monthCap = srsData[key].typeCaps && srsData[key].typeCaps[cat];
+        const globalCap = srsData.defaultTypeCaps && srsData.defaultTypeCaps[cat];
+        res[cat] = Object.assign({}, BUILTIN_TYPE_CAPS[cat], globalCap || {}, monthCap || {});
+      });
+      return res;
+    }
+
+    function getDayType(y, m, d) {
+      const w = new Date(y, m - 1, d).getDay();
+      const cat = getDayCategory(y, m, d);
+      return { w: w, cat: cat, req: getTypeCaps(y, m)[cat] };
+    }
+
+    // 日別の必要人数（日別の個別設定が最優先）
+    function getDailyCapacity(y, m, d) {
+      const key = ensureMonthData(y, m);
+      const base = getDayType(y, m, d).req;
+      const c = srsData[key].capacities && srsData[key].capacities[d];
+      if (c) return { day: c.day ?? base.day, night: c.night ?? base.night, eve: c.eve ?? base.eve };
+      return base;
+    }
     
-    function ensureMonthData() {
-        const key = getMonthKey();
-        if(!db[key]) db[key] = { shifts: {}, requests: {}, holidays: [] };
+    function getFiscalYear(y, m) { return m >= 4 ? y : y - 1; }
+
+    function render() {
+      const key = ensureMonthData(currentYear, currentMonth); const data = srsData[key];
+      const tbody = document.getElementById('shift-tbody'); tbody.innerHTML = '';
+      const op = document.getElementById('operator-select').value;
+      const daysInMonth = new Date(currentYear, currentMonth, 0).getDate();
+
+      for (let d = 1; d <= daysInMonth; d++) {
+        const typeInfo = getDayType(currentYear, currentMonth, d);
+        const dailyCap = getDailyCapacity(currentYear, currentMonth, d);
+        const holiCheck = isHoliday(currentYear, currentMonth, d);
+        let rowClass = (typeInfo.w === 6) ? "sat" : (typeInfo.w === 0 || holiCheck) ? "sun" : "";
+        let dateDisplay = holiCheck ? `${d} <span style="font-size:10px">(祝)</span>` : d;
+
+        const reqsObj = parseRequests(data.requests[d]);
+        const sh = Object.assign(emptyDay(), data.shifts[d] || {});
+        const fx = getFixed(key, d);
+        const hasCustomCap = !!(data.capacities && data.capacities[d]);
+
+        const isMyDay = sh.day && sh.day.includes(op); const isMyNight = sh.night && sh.night.includes(op); const isMyEve = sh.eve && sh.eve.includes(op);
+
+        const tr = document.createElement('tr'); tr.className = rowClass;
+        tr.innerHTML = `
+          <td style="font-weight:600; line-height:1.4;">${dateDisplay} <br><button class="btn-micro" style="${hasCustomCap ? 'background:#fffbeb; border-color:#fde68a; color:#92400e;' : ''}" onclick="openCapacityModal(${d})">${hasCustomCap ? '人数設定*' : '人数設定'}</button></td>
+          <td style="font-weight:500;">${daysStr[typeInfo.w]}</td>
+          <td class="clickable" onclick="openModal(${d}, 'requests')">${formatRequestsText(reqsObj)}</td>
+          <td class="clickable ${isMyDay ? 'my-shift-cell' : ''}" onclick="openModal(${d}, 'day')">${formatShift(sh.day, dailyCap.day, op, fx.day, isLocked(key, d, 'day'))}</td>
+          <td class="clickable ${isMyNight ? 'my-shift-cell' : ''}" onclick="openModal(${d}, 'night')">${formatShift(sh.night, dailyCap.night, op, fx.night, isLocked(key, d, 'night'))}</td>
+          <td class="clickable ${isMyEve ? 'my-shift-cell' : ''}" onclick="openModal(${d}, 'eve')">${formatShift(sh.eve, dailyCap.eve, op, fx.eve, isLocked(key, d, 'eve'))}</td>
+        `;
+        tbody.appendChild(tr);
+      }
+      renderSummary();
     }
 
-    function saveData() {
-        const key = getMonthKey();
-        ensureMonthData();
-    
-    fetch(SCRIPT_URL, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'text/plain;charset=utf-8'
-        },
-        body: JSON.stringify({
-            key: key,
-            data: db[key]
-        })
-    })
-    .then(response => response.json())
-    .then(result => {
-        console.log('スプレッドシートに保存完了:', result);
-    })
-    .catch(err => console.error('保存エラー:', err));
-    
-    updateStats();
-}
-    function setMode(newMode) {
-        mode = newMode;
-        document.getElementById('btn-view').classList.toggle('active', mode === 'view');
-        document.getElementById('btn-request').classList.toggle('active', mode === 'request');
-        document.getElementById('generate-group').style.display = mode === 'view' ? 'flex' : 'none';
-        document.getElementById('request-group').style.display = mode === 'request' ? 'flex' : 'none';
-        loadMonth();
+    function formatRequestsText(reqsObj) {
+      if (!reqsObj || Object.keys(reqsObj).length === 0) return `<span style="color:var(--text-muted); font-size:12px;">(なし)</span>`;
+      let html = "";
+      for (const [mem, types] of Object.entries(reqsObj)) {
+        if (!types || types.length === 0) continue;
+        if (types.includes('day') && types.includes('night') && types.includes('eve')) html += `<span class="member-tag req-tag">${mem} <b style="color:var(--danger);">[全休]</b></span>`;
+        else { let p = []; if (types.includes('day')) p.push("日"); if (types.includes('night')) p.push("当"); if (types.includes('eve')) p.push("ｲ"); html += `<span class="member-tag req-tag">${mem} [休:${p.join(',')}]</span>`; }
+      }
+      return html || `<span style="color:var(--text-muted); font-size:12px;">(なし)</span>`;
     }
 
-    // Toggle Holiday Manual Marker
-    function toggleHoliday(event, day) {
-        event.stopPropagation();
-        ensureMonthData();
-        const key = getMonthKey();
-        const idx = db[key].holidays.indexOf(day);
-        if(idx > -1) db[key].holidays.splice(idx, 1);
-        else db[key].holidays.push(day);
-        saveData();
-        loadMonth();
+    function formatMembers(arr, op, fixedArr) {
+      if (!arr || arr.length === 0) return "";
+      fixedArr = fixedArr || [];
+      return arr.map(m => {
+        const isFx = fixedArr.includes(m);
+        const cls = ['member-tag']; if (m === op) cls.push('is-me'); if (isFx) cls.push('is-fixed');
+        return `<span class="${cls.join(' ')}" title="${isFx ? '手入力（自動生成で変更されません）' : '自動生成'}">${m}${isFx ? '<span class="fix-mark">固定</span>' : ''}</span>`;
+      }).join("");
+    }
+    function formatShift(arr, reqCount, op, fixedArr, locked) {
+      const n = arr ? arr.length : 0;
+      let html = formatMembers(arr, op, fixedArr);
+      if (reqCount > 0 && n < reqCount) html += locked ? `<div class="cap-note">[ロック] ${reqCount - n}名分 自動補充なし</div>` : `<div class="empty-slot">+${reqCount - n}名 未定</div>`;
+      if (n > reqCount) html += `<div class="over-slot">必要${reqCount}名を${n - reqCount}名超過</div>`;
+      return (html === "" && reqCount === 0) ? `<span style="color:var(--text-muted); font-size:12px;">-</span>` : html;
     }
 
-    function loadMonth() {
-        ensureMonthData();
-        const key = getMonthKey();
-        const mData = db[key];
-        const tbody = document.getElementById('calendar-body');
-        tbody.innerHTML = '';
-        
-        const firstDay = new Date(currentYear, currentMonth - 1, 1).getDay();
-        const daysInMonth = new Date(currentYear, currentMonth, 0).getDate();
-        
-        let date = 1;
-        for (let i = 0; i < 6; i++) {
-            let row = document.createElement('tr');
-            for (let j = 0; j < 7; j++) {
-                let cell = document.createElement('td');
-                if (i === 0 && j < firstDay) {
-                    row.appendChild(cell);
-                } else if (date > daysInMonth) {
-                    row.appendChild(cell);
-                } else {
-                    let d = date;
-                    let isWeekend = (j === 0 || j === 6);
-                    let isHoliday = mData.holidays.includes(d);
-                    let isDayOff = isWeekend || isHoliday;
-                    
-                    let dateClass = j === 0 ? 'sun' : j === 6 ? 'sat' : '';
-                    if(isHoliday) dateClass = 'sun';
-
-                    let headerHtml = `<div class="date-header">
-                        <span class="${dateClass}">${d}</span>
-                        <button class="holiday-toggle" onclick="toggleHoliday(event, ${d})">祝日切替</button>
-                    </div>`;
-                    
-                    let contentHtml = '';
-                    
-                    // Show Requests
-                    if(mData.requests[d] && mData.requests[d].length > 0) {
-                        contentHtml += `<span class="shift-badge bg-ng">休: ${mData.requests[d].join(', ')}</span>`;
-                    }
-
-                    // Show Shifts
-                    if(mData.shifts[d]) {
-                        if(mData.shifts[d].day && mData.shifts[d].day.length > 0)
-                            contentHtml += `<span class="shift-badge bg-day">日: ${mData.shifts[d].day.join(', ')}</span>`;
-                        if(mData.shifts[d].night && mData.shifts[d].night.length > 0)
-                            contentHtml += `<span class="shift-badge bg-night">当: ${mData.shifts[d].night.join(', ')}</span>`;
-                        if(mData.shifts[d].evening && mData.shifts[d].evening.length > 0)
-                            contentHtml += `<span class="shift-badge bg-evening">イ: ${mData.shifts[d].evening.join(', ')}</span>`;
-                    }
-
-                    cell.innerHTML = headerHtml + contentHtml;
-                    cell.onclick = () => handleCellClick(d);
-                    row.appendChild(cell);
-                    date++;
-                }
-            }
-            tbody.appendChild(row);
-            if (date > daysInMonth) break;
-        }
-        updateStats();
+    window.openCapacityModal = function(d) {
+      currentCapacityTarget = d; const cap = getDailyCapacity(currentYear, currentMonth, d);
+      document.getElementById('cap-day').value = cap.day; document.getElementById('cap-night').value = cap.night; document.getElementById('cap-eve').value = cap.eve;
+      document.getElementById('cap-modal-title').innerText = `${currentMonth}月${d}日 必要人数の設定`;
+      const base = getDayType(currentYear, currentMonth, d);
+      const catName = { weekday: '平日', off: '金曜・第2火水', holiday: '土日祝' }[base.cat];
+      document.getElementById('cap-default-note').innerText = `この日の標準（${catName}）: 日直${base.req.day} / 当直${base.req.night} / ｲﾌﾞﾆﾝｸﾞ${base.req.eve}　※変更後は「シフト自動生成」で反映されます`;
+      document.getElementById('modal-overlay').style.display = 'block'; document.getElementById('capacity-modal').style.display = 'block';
+    }
+    window.saveCapacity = function() {
+      const op = checkOperator(); if(!op) return; const key = ensureMonthData(currentYear, currentMonth); const d = currentCapacityTarget;
+      const clamp = v => Math.max(0, Math.min(10, parseInt(v) || 0));
+      srsData[key].capacities[d] = { day: clamp(document.getElementById('cap-day').value), night: clamp(document.getElementById('cap-night').value), eve: clamp(document.getElementById('cap-eve').value) };
+      addLog(`${currentMonth}月${d}日の必要人数を変更`, op); closeAllModals(); saveData(); render();
+    }
+    window.resetCapacity = function() {
+      const op = checkOperator(); if(!op) return; const key = ensureMonthData(currentYear, currentMonth); const d = currentCapacityTarget;
+      if(srsData[key].capacities && srsData[key].capacities[d]) { delete srsData[key].capacities[d]; addLog(`${currentMonth}月${d}日の必要人数をデフォルトに戻しました`, op); }
+      closeAllModals(); saveData(); render();
     }
 
-    function handleCellClick(day) {
-        ensureMonthData();
-        const key = getMonthKey();
-        const mData = db[key];
-
-        if (mode === 'request') {
-            const member = document.getElementById('member-select').value;
-            if(!mData.requests[day]) mData.requests[day] = [];
-            
-            const idx = mData.requests[day].indexOf(member);
-            if(idx > -1) mData.requests[day].splice(idx, 1);
-            else mData.requests[day].push(member);
-            
-            saveData();
-            loadMonth();
-        } else {
-            // Edit Shift Mode
-            selectedDate = day;
-            document.getElementById('modal-date-title').innerText = `${currentYear}年${currentMonth}月${day}日 のシフト編集`;
-            
-            const shifts = mData.shifts[day] || { day:[], night:[], evening:[] };
-            
-            ['day', 'night', 'evening'].forEach(type => {
-                const container = document.getElementById(`${type}-members`);
-                container.innerHTML = '';
-                members.forEach(m => {
-                    const checked = shifts[type] && shifts[type].includes(m) ? 'checked' : '';
-                    container.innerHTML += `<label><input type="checkbox" value="${m}" ${checked}> ${m}</label>`;
-                });
-            });
-            
-            document.getElementById('edit-modal').style.display = 'flex';
-        }
+    // ====== 必要人数の一括設定（区分ごと） ======
+    window.openDefaultCapModal = function() {
+      const caps = getTypeCaps(currentYear, currentMonth);
+      ['weekday', 'off', 'holiday'].forEach(cat => SHIFT_TYPES.forEach(t => document.getElementById(`dc-${cat}-${t}`).value = caps[cat][t]));
+      document.getElementById('default-cap-title').innerText = `${currentYear}年${currentMonth}月 必要人数の一括設定`;
+      document.getElementById('dc-save-global').checked = false; document.getElementById('dc-clear-daily').checked = false;
+      document.getElementById('modal-overlay').style.display = 'block'; document.getElementById('default-cap-modal').style.display = 'block';
+    }
+    window.saveDefaultCap = function() {
+      const op = checkOperator(); if(!op) return; const key = ensureMonthData(currentYear, currentMonth);
+      const clamp = v => Math.max(0, Math.min(10, parseInt(v) || 0));
+      const caps = {};
+      ['weekday', 'off', 'holiday'].forEach(cat => { caps[cat] = {}; SHIFT_TYPES.forEach(t => caps[cat][t] = clamp(document.getElementById(`dc-${cat}-${t}`).value)); });
+      srsData[key].typeCaps = caps;
+      let msg = `${currentMonth}月の必要人数を一括変更`;
+      if (document.getElementById('dc-save-global').checked) { srsData.defaultTypeCaps = JSON.parse(JSON.stringify(caps)); msg += '（今後の標準にも保存）'; }
+      if (document.getElementById('dc-clear-daily').checked) { srsData[key].capacities = {}; msg += '・日別設定をリセット'; }
+      addLog(msg, op); closeAllModals(); saveData(); render();
+    }
+    window.resetDefaultCap = function() {
+      ['weekday', 'off', 'holiday'].forEach(cat => {
+        const g = Object.assign({}, BUILTIN_TYPE_CAPS[cat], (srsData.defaultTypeCaps && srsData.defaultTypeCaps[cat]) || {});
+        SHIFT_TYPES.forEach(t => document.getElementById(`dc-${cat}-${t}`).value = g[t]);
+      });
     }
 
-    function closeModal() {
-        document.getElementById('edit-modal').style.display = 'none';
-        selectedDate = null;
-    }
-
-    function saveModalData() {
-        if(!selectedDate) return;
-        const key = getMonthKey();
-        
-        const getChecked = (id) => Array.from(document.querySelectorAll(`#${id} input:checked`)).map(el => el.value);
-        
-        db[key].shifts[selectedDate] = {
-            day: getChecked('day-members'),
-            night: getChecked('night-members'),
-            evening: getChecked('evening-members')
-        };
-        
-        saveData();
-        closeModal();
-        loadMonth();
-    }
-
-    // Heuristic Generator (Best Effort)
-    function generateShift() {
-        if(!confirm('現在のシフトを上書きして自動生成しますか？（休み希望は維持されます）')) return;
-        
-        ensureMonthData();
-        const key = getMonthKey();
-        const mData = db[key];
-        mData.shifts = {}; // clear current
-
-        const daysInMonth = new Date(currentYear, currentMonth, 0).getDate();
-        
-        // Track recent shifts to prevent consecutive days (Rule 6)
-        let lastWorked = {}; 
-        members.forEach(m => lastWorked[m] = -99); // Day last worked
-
-        // Simple tracker for balancing within the month
-        let counts = {};
-        members.forEach(m => counts[m] = { w_night:0, w_eve:0, h_night:0, h_day:0, total:0 });
-
-        for(let day=1; day<=daysInMonth; day++) {
-            let dateObj = new Date(currentYear, currentMonth-1, day);
-            let dayOfWeek = dateObj.getDay();
-            let isWeekend = (dayOfWeek === 0 || dayOfWeek === 6);
-            let isHoliday = mData.holidays.includes(day);
-            let isDayOff = isWeekend || isHoliday;
-            
-            let isFriday = (dayOfWeek === 5);
-            // 2nd Tue/Wed (Rule 5)
-            let isSecondWeek = (day >= 8 && day <= 14);
-            let isSecondTueWed = isSecondWeek && (dayOfWeek === 2 || dayOfWeek === 3);
-
-            let reqOff = mData.requests[day] || [];
-            
-            // Available candidates (Not requested off, didn't work yesterday)
-            let available = members.filter(m => !reqOff.includes(m) && (day - lastWorked[m]) > 1);
-
-            mData.shifts[day] = { day:[], night:[], evening:[] };
-
-            // Function to pick best candidate to balance stats
-            const pickCandidate = (statKey) => {
-                if(available.length === 0) return null;
-                // Sort by specific stat, then total stat, to ensure balance
-                available.sort((a, b) => {
-                    if (counts[a][statKey] !== counts[b][statKey]) return counts[a][statKey] - counts[b][statKey];
-                    return counts[a].total - counts[b].total;
-                });
-                let chosen = available.shift(); // take first
-                counts[chosen][statKey]++;
-                counts[chosen].total++;
-                lastWorked[chosen] = day;
-                return chosen;
-            };
-
-            if (isDayOff) {
-                // Rule 2: 土日祝は日直2人と当直1人
-                let d1 = pickCandidate('h_day');
-                let d2 = pickCandidate('h_day');
-                let n1 = pickCandidate('h_night');
-                
-                if(d1) mData.shifts[day].day.push(d1);
-                if(d2) mData.shifts[day].day.push(d2);
-                if(n1) mData.shifts[day].night.push(n1);
-
-            } else {
-                // Weekday
-                if (isFriday || isSecondTueWed) {
-                    // Rule 4 & 5: No shifts
-                    continue; 
-                } else {
-                    // Rule 1: 月〜木は当直1, イブニング当直1
-                    let n1 = pickCandidate('w_night');
-                    let e1 = pickCandidate('w_eve');
-                    
-                    if(n1) mData.shifts[day].night.push(n1);
-                    if(e1) mData.shifts[day].evening.push(e1);
-                }
-            }
-        }
-        
-        saveData();
-        loadMonth();
-        alert('生成が完了しました。条件が厳しすぎる場合（休みの被り等）空欄になることがあります。手動で微調整してください。');
-    }
-
-    function clearShift() {
-        if(confirm('今月のシフトデータをすべて消去しますか？（休み希望は消えません）')) {
-            db[getMonthKey()].shifts = {};
-            saveData();
-            loadMonth();
-        }
-    }
-
-    function updateStats() {
-        ensureMonthData();
-        const mData = db[getMonthKey()];
-        const tbody = document.getElementById('stats-body');
-        tbody.innerHTML = '';
-
-        let stats = {};
-        members.forEach(m => stats[m] = { w_night:0, w_eve:0, h_night:0, h_day:0, req:0 });
-
-        const daysInMonth = new Date(currentYear, currentMonth, 0).getDate();
-        
-        for(let day=1; day<=daysInMonth; day++) {
-            let dateObj = new Date(currentYear, currentMonth-1, day);
-            let dayOfWeek = dateObj.getDay();
-            let isDayOff = (dayOfWeek === 0 || dayOfWeek === 6) || mData.holidays.includes(day);
-
-            // Count Requests
-            if(mData.requests[day]) {
-                mData.requests[day].forEach(m => { if(stats[m]) stats[m].req++; });
-            }
-
-            // Count Shifts
-            if(mData.shifts[day]) {
-                const s = mData.shifts[day];
-                s.day.forEach(m => { if(stats[m] && isDayOff) stats[m].h_day++; });
-                s.night.forEach(m => { 
-                    if(stats[m]) { isDayOff ? stats[m].h_night++ : stats[m].w_night++; }
-                });
-                s.evening.forEach(m => { if(stats[m] && !isDayOff) stats[m].w_eve++; });
-            }
-        }
-
+    window.openModal = function(day, type) {
+      modalTarget = { day, type }; const key = getMonthKey(currentYear, currentMonth);
+      const container = document.getElementById('modal-body-container'); const titleEl = document.getElementById('modal-title');
+      if (type === 'requests') {
+        titleEl.innerText = `${currentMonth}月${day}日 休み希望の編集`;
+        const reqsObj = parseRequests(srsData[key].requests[day]);
+        let html = `<table class="req-table"><tr><th>名前</th><th>日休</th><th>当休</th><th>ｲ休</th><th>全休</th></tr>`;
         members.forEach(m => {
-            let total = stats[m].w_night + stats[m].w_eve + stats[m].h_night + stats[m].h_day;
-            tbody.innerHTML += `
-                <tr>
-                    <td><strong>${m}</strong></td>
-                    <td>${stats[m].w_night}</td>
-                    <td>${stats[m].w_eve}</td>
-                    <td>${stats[m].h_night}</td>
-                    <td>${stats[m].h_day}</td>
-                    <td style="font-weight:bold; color:var(--accent);">${total}</td>
-                    <td style="color:#7f8c8d;">${stats[m].req}</td>
-                </tr>
-            `;
+          const types = reqsObj[m] || []; const isAll = types.includes('day') && types.includes('night') && types.includes('eve');
+          html += `<tr><td style="text-align:left; font-weight:600;">${m}</td><td><input type="checkbox" class="cb-req-day" data-m="${m}" ${types.includes('day')?'checked':''}></td>
+              <td><input type="checkbox" class="cb-req-night" data-m="${m}" ${types.includes('night')?'checked':''}></td><td><input type="checkbox" class="cb-req-eve" data-m="${m}" ${types.includes('eve')?'checked':''}></td>
+              <td><input type="checkbox" class="cb-req-all" data-m="${m}" ${isAll?'checked':''} onchange="toggleRowAll(this)"></td></tr>`;
         });
+        container.innerHTML = html + `</table>`;
+      } else {
+        const typeNames = { day: "日直", night: "当直", eve: "ｲﾌﾞﾆﾝｸﾞ当直" }; titleEl.innerText = `${currentMonth}月${day}日 ${typeNames[type]}の編集`;
+        ensureMonthData(currentYear, currentMonth);
+        const selected = (srsData[key].shifts[day] && srsData[key].shifts[day][type]) ? srsData[key].shifts[day][type] : [];
+        const fixedArr = getFixed(key, day)[type];
+        const cap = getDailyCapacity(currentYear, currentMonth, day)[type];
+        container.innerHTML = `<div style="font-size:13px; color:var(--text-muted); margin-bottom:10px;">必要人数: <b>${cap}名</b></div>`
+          + `<div class="checkbox-grid" id="shift-cb-grid">` + members.map(m => `<label><input type="checkbox" value="${m}" ${selected.includes(m)?'checked':''}>${m}${fixedArr.includes(m) ? ' <span class="member-tag is-fixed" style="font-size:10px; padding:0 4px;">固定</span>' : ''}</label>`).join('') + `</div>`
+          + `<label class="opt-label"><input type="checkbox" id="chk-fix-all" checked> チェックしたメンバーを全員「固定」にする</label>`
+          + `<label class="opt-label"><input type="checkbox" id="chk-lock-cell" ${isLocked(key, day, type) ? 'checked' : ''}> この枠は自動生成で人数を補充しない（ロック）</label>`
+          + `<div class="modal-hint">「固定」のメンバーはシフト自動生成で変更されず、その回数も含めて全員の回数が均等になるように残りが割り振られます。<br>「全員固定」を外した場合、新しく追加したメンバーのみ固定になります。</div>`;
+      }
+      document.getElementById('modal-overlay').style.display = 'block'; document.getElementById('modal-content').style.display = 'block';
+    }
+    window.toggleRowAll = function(chk) { const tr = chk.closest('tr'); tr.querySelector('.cb-req-day').checked = chk.checked; tr.querySelector('.cb-req-night').checked = chk.checked; tr.querySelector('.cb-req-eve').checked = chk.checked; }
+    window.saveModal = function() {
+      const op = checkOperator(); if(!op) return; const key = getMonthKey(currentYear, currentMonth);
+      if (modalTarget.type === 'requests') {
+        let newReqs = {};
+        document.querySelectorAll('.req-table tr').forEach(tr => {
+          const m = tr.querySelector('.cb-req-all')?.getAttribute('data-m'); if(!m) return;
+          let t = []; if(tr.querySelector('.cb-req-day').checked) t.push('day'); if(tr.querySelector('.cb-req-night').checked) t.push('night'); if(tr.querySelector('.cb-req-eve').checked) t.push('eve');
+          if(t.length > 0) newReqs[m] = t;
+        });
+        srsData[key].requests[modalTarget.day] = newReqs; addLog(`${currentMonth}月${modalTarget.day}日の休み希望を手動編集しました`, op);
+      } else {
+        ensureMonthData(currentYear, currentMonth);
+        const d = modalTarget.day, t = modalTarget.type;
+        const newSel = Array.from(document.querySelectorAll('#shift-cb-grid input:checked')).map(c=>c.value);
+        const oldSel = (srsData[key].shifts[d] && srsData[key].shifts[d][t]) ? srsData[key].shifts[d][t] : [];
+        const oldFixed = getFixed(key, d)[t];
+        const fixAll = document.getElementById('chk-fix-all').checked;
+        const newFixed = fixAll ? newSel.slice() : newSel.filter(m => !oldSel.includes(m) || oldFixed.includes(m));
+        if (!srsData[key].shifts[d]) srsData[key].shifts[d] = emptyDay();
+        srsData[key].shifts[d][t] = newSel;
+        const fx = getFixed(key, d); fx[t] = newFixed; srsData[key].fixed[d] = fx;
+        const lk = Object.assign({}, srsData[key].locked[d] || {}); lk[t] = document.getElementById('chk-lock-cell').checked; srsData[key].locked[d] = lk;
+        const typeNames = { day: "日直", night: "当直", eve: "ｲﾌﾞﾆﾝｸﾞ" }; addLog(`${currentMonth}月${modalTarget.day}日の${typeNames[modalTarget.type]}を手動編集`, op);
+      }
+      closeAllModals(); saveData(); render();
     }
 
-    window.onload = init;
-</script>
+    // ====== カレンダー休み希望 ======
+    window.openCalendarModal = function() {
+      const op = document.getElementById('operator-select').value; const sel = document.getElementById('cal-member-select');
+      sel.innerHTML = members.map(m => `<option value="${m}">${m}</option>`).join(''); if(op) sel.value = op; 
+      const key = ensureMonthData(currentYear, currentMonth); tempCalendarReqs = JSON.parse(JSON.stringify(srsData[key].requests || {}));
+      document.getElementById('modal-overlay').style.display = 'block'; document.getElementById('calendar-modal').style.display = 'block'; renderCalendar();
+    }
+    window.renderCalendar = function() {
+      const member = document.getElementById('cal-member-select').value; document.getElementById('cal-month-label').innerText = `${currentYear}年 ${currentMonth}月`;
+      const grid = document.getElementById('cal-grid'); grid.innerHTML = daysStr.map(d => `<div class="cal-day-label">${d}</div>`).join('');
+      const firstDay = new Date(currentYear, currentMonth - 1, 1).getDay(); const daysInMonth = new Date(currentYear, currentMonth, 0).getDate();
+      for(let i=0; i<firstDay; i++) grid.innerHTML += `<div class="cal-empty"></div>`;
+      for(let d=1; d<=daysInMonth; d++) {
+        let types = (tempCalendarReqs[d] && tempCalendarReqs[d][member]) ? tempCalendarReqs[d][member] : [];
+        let cls = "cal-cell"; let txt = d;
+        if(types.length === 3) { cls += " req-full"; txt += "<br><span style='font-size:10px'>全休</span>"; }
+        else if(types.length > 0) { cls += " req-partial"; let labels = types.map(t => t==='day'?'日':t==='night'?'当':'ｲ').join(','); txt += `<br><span style='font-size:10px'>休:${labels}</span>`; }
+        const cell = document.createElement('div'); cell.className = cls; cell.innerHTML = txt; cell.onclick = () => openReqDetailModal(d, member, types); grid.appendChild(cell);
+      }
+    }
+    window.openReqDetailModal = function(d, member, currentTypes) {
+      currentDetailTarget = { d, member }; document.getElementById('req-detail-title').innerText = `${d}日 ${member} の希望`;
+      document.getElementById('chk-req-day').checked = currentTypes.includes('day'); document.getElementById('chk-req-night').checked = currentTypes.includes('night'); document.getElementById('chk-req-eve').checked = currentTypes.includes('eve');
+      window.checkSubReqs(); document.getElementById('req-detail-modal').style.display = 'block';
+    }
+    window.closeReqDetailModal = function() { document.getElementById('req-detail-modal').style.display = 'none'; }
+    window.toggleAllReqs = function() { const v = document.getElementById('chk-req-all').checked; document.querySelectorAll('.sub-req').forEach(c => c.checked = v); }
+    window.checkSubReqs = function() { const allChecked = Array.from(document.querySelectorAll('.sub-req')).every(c => c.checked); document.getElementById('chk-req-all').checked = allChecked; }
+    window.saveReqDetail = function() {
+      let t = []; if(document.getElementById('chk-req-day').checked) t.push('day'); if(document.getElementById('chk-req-night').checked) t.push('night'); if(document.getElementById('chk-req-eve').checked) t.push('eve');
+      const {d, member} = currentDetailTarget; if(!tempCalendarReqs[d]) tempCalendarReqs[d] = {};
+      if(t.length > 0) tempCalendarReqs[d][member] = t; else delete tempCalendarReqs[d][member];
+      closeReqDetailModal(); renderCalendar();
+    }
+    window.saveCalendarRequests = function() {
+      const op = checkOperator(); if(!op) return; const key = getMonthKey(currentYear, currentMonth);
+      srsData[key].requests = tempCalendarReqs; addLog(`カレンダーから ${currentMonth}月の休み希望 を反映`, op); closeAllModals(); saveData(); render();
+    }
 
+    // ====== 日付ユーティリティ（月またぎ対応） ======
+    function shiftDate(y, m, d, offset) {
+      const dt = new Date(y, m - 1, d + offset);
+      return { y: dt.getFullYear(), m: dt.getMonth() + 1, d: dt.getDate() };
+    }
+    // 生成中は working（作業中の今月シフト）を参照し、それ以外の月は保存済みデータを参照
+    function getShiftsAt(y, m, d, working) {
+      if (working && y === currentYear && m === currentMonth) return working[d] || emptyDay();
+      const key = getMonthKey(y, m);
+      const sh = srsData[key] && srsData[key].shifts && srsData[key].shifts[d];
+      return Object.assign(emptyDay(), sh || {});
+    }
+    function worksOn(y, m, d, member, working) {
+      const sh = getShiftsAt(y, m, d, working);
+      return SHIFT_TYPES.some(t => (sh[t] || []).includes(member));
+    }
+
+    // 候補になれるかの判定（休み希望・同日重複・前後日連続・木当直→土日NG）
+    function canAssign(d, type, member, working, reqsObj) {
+      const y = currentYear, m = currentMonth;
+      if (reqsObj[member] && reqsObj[member].includes(type)) return false;      // 休み希望
+      if (worksOn(y, m, d, member, working)) return false;                        // 同日重複
+      const prev = shiftDate(y, m, d, -1), next = shiftDate(y, m, d, 1);
+      if (worksOn(prev.y, prev.m, prev.d, member, working)) return false;         // 前日に勤務
+      if (worksOn(next.y, next.m, next.d, member, working)) return false;         // 翌日に勤務（手入力の固定シフトがある場合など）
+
+      const dow = new Date(y, m - 1, d).getDay();
+      // 直前の木曜日に当直だった人は、その週の土日の全シフトに入れない
+      if (dow === 6 || dow === 0) {
+        const thu = shiftDate(y, m, d, dow === 6 ? -2 : -3);
+        if ((getShiftsAt(thu.y, thu.m, thu.d, working).night || []).includes(member)) return false;
+      }
+      // 逆方向：木曜当直に入れる場合、その週の土日に既にシフトがある人は不可
+      if (dow === 4 && type === 'night') {
+        const sat = shiftDate(y, m, d, 2), sun = shiftDate(y, m, d, 3);
+        if (worksOn(sat.y, sat.m, sat.d, member, working) || worksOn(sun.y, sun.m, sun.d, member, working)) return false;
+      }
+      return true;
+    }
+
+    // 旧バージョンで作成されたシフト（固定情報が無いデータ）の扱いを一度だけ確認する
+    // 戻り値 false = 処理を中止
+    function migrateManualShifts(key) {
+      const md = srsData[key];
+      if (md.autoGenerated || md.fixedMigrated) return true;
+      // 固定登録されていない既存シフトがあるか
+      const hasUnfixed = Object.keys(md.shifts || {}).some(d => SHIFT_TYPES.some(t => (md.shifts[d][t] || []).some(mem => !getFixed(key, d)[t].includes(mem))));
+      if (!hasUnfixed) { md.fixedMigrated = true; return true; }
+      const ans = confirm(`${currentMonth}月には、固定情報が登録される前に入力されたシフトがあります。\n\n［OK］ 現在入っているシフトを全て「手入力の固定シフト」として扱う\n［キャンセル］ 固定扱いにしない（自動生成で作り直す）`);
+      if (ans) {
+        Object.keys(md.shifts).forEach(d => {
+          const fx = getFixed(key, d);
+          SHIFT_TYPES.forEach(t => (md.shifts[d][t] || []).forEach(mem => { if (!fx[t].includes(mem)) fx[t].push(mem); }));
+          if (SHIFT_TYPES.some(t => fx[t].length > 0)) md.fixed[d] = fx;
+        });
+      }
+      md.fixedMigrated = true;
+      return true;
+    }
+
+    function variance(arr) {
+      if (arr.length === 0) return 0;
+      const mean = arr.reduce((a, b) => a + b, 0) / arr.length;
+      return arr.reduce((a, b) => a + (b - mean) * (b - mean), 0) / arr.length;
+    }
+
+    // ====== 自動生成 ======
+    // ・手入力（固定）シフトはそのまま残す
+    // ・固定分も回数に含めた上で、全員の回数が均等になるよう残りの枠を割り振る
+    // ・必要人数は「日別設定 → 月の一括設定 → 標準」に従う
+    window.generateShift = function() {
+      const op = checkOperator(); if(!op) return;
+      const key = ensureMonthData(currentYear, currentMonth);
+      if (!migrateManualShifts(key)) return;
+
+      const daysInMonth = new Date(currentYear, currentMonth, 0).getDate();
+      let fixedCount = 0;
+      for (let d = 1; d <= daysInMonth; d++) { const fx = getFixed(key, d); SHIFT_TYPES.forEach(t => fixedCount += fx[t].length); }
+      if(!confirm(`${currentMonth}月のシフトを自動生成しますか？\n\n・手入力した固定シフト（${fixedCount}件）は変更しません\n・固定分も含めて回数が均等になるように割り振ります\n・自動生成済みのシフトは作り直されます（休み希望は維持されます）`)) return;
+
+      const isAfterAug2026 = (currentYear > 2026) || (currentYear === 2026 && currentMonth >= 8);
+
+      // 固定シフトのみの状態を作り、その状態で集計（＝固定分を回数に含める）
+      const baseShifts = {};
+      for (let d = 1; d <= daysInMonth; d++) baseShifts[d] = JSON.parse(JSON.stringify(getFixed(key, d)));
+      const savedShifts = srsData[key].shifts;
+      srsData[key].shifts = baseShifts;
+      const baseStats = calcStats();
+      srsData[key].shifts = savedShifts;
+
+      // 割り当てが必要な枠を列挙
+      const slots = [];
+      for (let d = 1; d <= daysInMonth; d++) {
+        const cap = getDailyCapacity(currentYear, currentMonth, d);
+        SHIFT_TYPES.forEach(type => {
+          if (isLocked(key, d, type)) return;
+          const need = cap[type] - baseShifts[d][type].length;
+          for (let i = 0; i < need; i++) slots.push({ d, type });
+        });
+      }
+
+      function runTrial() {
+        const working = JSON.parse(JSON.stringify(baseShifts));
+        const stats = JSON.parse(JSON.stringify(baseStats));
+        let unfilled = 0;
+        slots.forEach(({ d, type }) => {
+          const actualDow = new Date(currentYear, currentMonth - 1, d).getDay();
+          const dow = isHoliday(currentYear, currentMonth, d) ? 7 : actualDow;
+          const reqsObj = parseRequests(srsData[key].requests[d]);
+          const candidates = members.filter(mem => canAssign(d, type, mem, working, reqsObj));
+          if (candidates.length === 0) { unfilled++; return; }
+
+          // 小さいほど優先（優先度順：今月合計 > 木当直・祝日 > 曜日別の偏り(今月/年度) > 種類別 > 年度合計）
+          const score = mem => {
+            const st = stats[mem];
+            const allByDay = sc => st[sc].dayByDay[dow] + st[sc].nightByDay[dow] + st[sc].eveByDay[dow];
+            let sc = st.month.total * 1e7;                                   // 今月の合計回数を最優先で均等に
+            if (isAfterAug2026 && actualDow === 4 && type === 'night') sc += st.year.thuNightAfterAug * 5e6; // 木当直（年度）
+            if (dow === 7) sc += st.year[type+"ByDay"][7] * 3e6 + allByDay('year') * 1e6;                   // 祝日（年度）
+            sc += st.month[type+"ByDay"][dow] * 2e6;   // 今月：この種類×この曜日
+            sc += allByDay('month') * 1e6;              // 今月：この曜日（全種類）
+            sc += st.year[type+"ByDay"][dow] * 4e5;    // 年度：この種類×この曜日
+            sc += allByDay('year') * 2e5;               // 年度：この曜日（全種類）
+            sc += st.month[type] * 1e5 + st.year[type] * 3e4;  // 種類別の回数
+            sc += st.year.total * 1e4;                  // 年度の合計回数
+            return sc + Math.random() * 9999;           // ほぼ同点はランダム
+          };
+          const scored = candidates.map(mem => ({ mem, sc: score(mem) })).sort((a, b) => a.sc - b.sc);
+          const selected = scored[0].mem;
+
+          working[d][type].push(selected);
+          const st = stats[selected];
+          st.month.total++; st.year.total++; st.month[type]++; st.year[type]++;
+          st.month[type+"ByDay"][dow]++; st.year[type+"ByDay"][dow]++;
+          if (isAfterAug2026 && actualDow === 4 && type === 'night') { st.month.thuNightAfterAug++; st.year.thuNightAfterAug++; }
+        });
+
+        // 評価：未充足 → 今月合計のばらつき → 種類別のばらつき → 年度累計のばらつき
+        const mt = members.map(mm => stats[mm].month.total);
+        const V = (scope, f) => variance(members.map(mm => f(stats[mm][scope])));
+        let dowCostM = 0, dowCostY = 0;
+        for (let i = 0; i < 8; i++) {
+          SHIFT_TYPES.forEach(t => { dowCostM += V('month', x => x[t+"ByDay"][i]); dowCostY += V('year', x => x[t+"ByDay"][i]); });
+          dowCostM += V('month', x => x.dayByDay[i] + x.nightByDay[i] + x.eveByDay[i]);
+          dowCostY += V('year', x => x.dayByDay[i] + x.nightByDay[i] + x.eveByDay[i]);
+        }
+        const cost = unfilled * 1e9
+          + variance(mt) * 1e6 + (Math.max(...mt) - Math.min(...mt)) * 1e5   // 今月合計
+          + V('year', x => x.thuNightAfterAug) * 3e5                          // 木当直（年度）
+          + dowCostM * 2e4 + dowCostY * 1e4                                   // 曜日別（今月・年度）
+          + SHIFT_TYPES.reduce((a, t) => a + V('month', x => x[t]) + V('year', x => x[t]), 0) * 5e3
+          + V('year', x => x.total) * 1e3;
+        return { working, unfilled, cost };
+      }
+
+      // 複数回試行して最も均等な結果を採用
+      let best = null;
+      for (let i = 0; i < 300; i++) { const r = runTrial(); if (!best || r.cost < best.cost) best = r; }
+
+      srsData[key].shifts = best.working;
+      srsData[key].autoGenerated = true;
+      addLog(`${currentMonth}月のシフトを自動生成しました（固定${fixedCount}件を維持）`, op); saveData(); render();
+      alert(best.unfilled > 0
+        ? `自動生成が完了しました。\n※条件（休み希望・連続勤務禁止など）を満たす人がいないため、${best.unfilled}枠が未定のままです。`
+        : "自動生成が完了しました！");
+    }
+
+    window.clearShift = function() {
+      const op = checkOperator(); if(!op) return; if(!confirm("今月のシフトを全てクリアしますか？\n※手入力の固定シフト・ロック設定もクリアされます")) return;
+      const key = ensureMonthData(currentYear, currentMonth);
+      srsData[key].shifts = {}; srsData[key].fixed = {}; srsData[key].locked = {}; srsData[key].autoGenerated = true;
+      addLog(`${currentMonth}月のシフトを全クリア`, op); saveData(); render();
+    }
+
+    window.clearAutoShift = function() {
+      const op = checkOperator(); if(!op) return;
+      const key = ensureMonthData(currentYear, currentMonth);
+      if (!migrateManualShifts(key)) return;
+      if(!confirm("自動生成されたシフトのみクリアしますか？\n※手入力の固定シフトは残ります")) return;
+      const newShifts = {};
+      Object.keys(srsData[key].fixed).forEach(d => newShifts[d] = JSON.parse(JSON.stringify(getFixed(key, d))));
+      srsData[key].shifts = newShifts; srsData[key].autoGenerated = true;
+      addLog(`${currentMonth}月の自動生成シフトをクリア（固定は維持）`, op); saveData(); render();
+    }
+
+    window.openHolidayModal = function() {
+      document.getElementById('holi-modal-title').innerText = `${currentYear}年 ${currentMonth}月 祝日の設定`;
+      const list = document.getElementById('holi-list'); list.innerHTML = '';
+      const daysInMonth = new Date(currentYear, currentMonth, 0).getDate();
+      for(let d=1; d<=daysInMonth; d++) {
+        const isHoli = isHoliday(currentYear, currentMonth, d);
+        const item = document.createElement('div'); item.className = `holi-item ${isHoli ? 'is-holi' : ''}`;
+        item.innerHTML = `<span>${d}日 (${daysStr[new Date(currentYear, currentMonth-1, d).getDay()]})</span>
+          <label><input type="checkbox" id="holi-check-${d}" ${isHoli?'checked':''} onchange="this.parentElement.parentElement.classList.toggle('is-holi')"> 祝日扱い</label>`;
+        list.appendChild(item);
+      }
+      document.getElementById('modal-overlay').style.display = 'block'; document.getElementById('holiday-modal').style.display = 'block';
+    }
+    window.saveHolidayModal = function() {
+      const op = checkOperator(); if(!op) return; const key = ensureMonthData(currentYear, currentMonth);
+      for(let d=1; d<=new Date(currentYear, currentMonth, 0).getDate(); d++) srsData[key].customHolidays[d] = document.getElementById(`holi-check-${d}`).checked;
+      addLog(`${currentMonth}月の祝日設定を変更しました`, op); closeAllModals(); saveData(); render();
+    }
+    window.closeAllModals = function() { document.querySelectorAll('.modal-box, #modal-overlay').forEach(el => el.style.display = 'none'); }
+
+    // ====== 集計ロジック ======
+    function calcStats() {
+      let stats = {};
+      members.forEach(m => stats[m] = {
+        month: { total:0, day:0, night:0, eve:0, dayByDay:[0,0,0,0,0,0,0,0], nightByDay:[0,0,0,0,0,0,0,0], eveByDay:[0,0,0,0,0,0,0,0], thuNightAfterAug: 0 },
+        year: { total:0, day:0, night:0, eve:0, dayByDay:[0,0,0,0,0,0,0,0], nightByDay:[0,0,0,0,0,0,0,0], eveByDay:[0,0,0,0,0,0,0,0], thuNightAfterAug: 0 }
+      });
+
+      const fy = getFiscalYear(currentYear, currentMonth);
+      const mList = [{y:fy,m:4},{y:fy,m:5},{y:fy,m:6},{y:fy,m:7},{y:fy,m:8},{y:fy,m:9},{y:fy,m:10},{y:fy,m:11},{y:fy,m:12},{y:fy+1,m:1},{y:fy+1,m:2},{y:fy+1,m:3}];
+
+      mList.forEach(ym => {
+        const key = getMonthKey(ym.y, ym.m);
+        const data = srsData[key];
+        const isCur = (ym.y === currentYear && ym.m === currentMonth);
+        const isAfterAug2026 = (ym.y > 2026) || (ym.y === 2026 && ym.m >= 8);
+
+        if (data && data.shifts) {
+          Object.keys(data.shifts).forEach(d => {
+            const sh = data.shifts[d];
+            const isHoli = isHoliday(ym.y, ym.m, d);
+            const actualDow = new Date(ym.y, ym.m - 1, d).getDay(); // カレンダー上の実際の曜日
+            const dow = isHoli ? 7 : actualDow;
+            
+            members.forEach(m => {
+              if (sh.day && sh.day.includes(m)) { stats[m].year.total++; stats[m].year.day++; stats[m].year.dayByDay[dow]++; if(isCur){ stats[m].month.total++; stats[m].month.day++; stats[m].month.dayByDay[dow]++; } }
+              if (sh.night && sh.night.includes(m)) { 
+                stats[m].year.total++; stats[m].year.night++; stats[m].year.nightByDay[dow]++; 
+                if(isCur){ stats[m].month.total++; stats[m].month.night++; stats[m].month.nightByDay[dow]++; }
+                if (isAfterAug2026 && actualDow === 4) {
+                  stats[m].year.thuNightAfterAug++;
+                  if(isCur) stats[m].month.thuNightAfterAug++;
+                }
+              }
+              if (sh.eve && sh.eve.includes(m)) { stats[m].year.total++; stats[m].year.eve++; stats[m].year.eveByDay[dow]++; if(isCur){ stats[m].month.total++; stats[m].month.eve++; stats[m].month.eveByDay[dow]++; } }
+            });
+          });
+        }
+      });
+      return stats;
+    }
+
+    function renderBreakdownBadges(total, arr) {
+      let html = `<div style="font-weight:600; font-size:14px; margin-bottom:4px; color:var(--primary);">計: ${total}</div><div class="bd-container">`;
+      [1,2,3,4,5,6,0,7].forEach(d => { html += `<span class="${arr[d]>0 ? 'bd-badge bd-active':'bd-badge bd-zero'}">${daysStrEx[d]}:${arr[d]}</span>`; });
+      return html + `</div>`;
+    }
+
+    function renderSummary() {
+      const stats = calcStats();
+      const mTbody = document.getElementById('monthly-summary-tbody'); const yTbody = document.getElementById('yearly-summary-tbody');
+      mTbody.innerHTML = ''; yTbody.innerHTML = '';
+
+      members.forEach(m => {
+        const st = stats[m];
+        let color = st.month.total >= 6 && st.month.total <= 7 ? "#0ea5e9" : st.month.total > 7 ? "var(--danger)" : "var(--primary)";
+        mTbody.innerHTML += `<tr><td style="font-weight:600;">${m}</td><td style="color:${color}; font-weight:700; font-size:18px;">${st.month.total}</td>
+          <td style="font-weight:700; color:var(--danger); background:#fef2f2;">${st.month.thuNightAfterAug}</td>
+          <td>${renderBreakdownBadges(st.month.night, st.month.nightByDay)}</td><td>${renderBreakdownBadges(st.month.eve, st.month.eveByDay)}</td><td>${renderBreakdownBadges(st.month.day, st.month.dayByDay)}</td></tr>`;
+        yTbody.innerHTML += `<tr><td style="font-weight:600; background:#f8fafc;">${m}</td><td style="font-weight:700; font-size:18px; background:#f1f5f9;">${st.year.total}</td>
+          <td style="font-weight:700; color:var(--danger); background:#fef2f2;">${st.year.thuNightAfterAug}</td>
+          <td>${renderBreakdownBadges(st.year.night, st.year.nightByDay)}</td><td>${renderBreakdownBadges(st.year.eve, st.year.eveByDay)}</td><td>${renderBreakdownBadges(st.year.day, st.year.dayByDay)}</td></tr>`;
+      });
+    }
+
+    window.toggleYearlyTable = function() {
+      const el = document.getElementById('yearly-summary-container');
+      el.style.display = el.style.display === 'none' ? 'block' : 'none';
+      if(el.style.display === 'block') setTimeout(() => el.scrollIntoView({behavior:"smooth"}), 100);
+    }
+  </script>
 </body>
 </html>
