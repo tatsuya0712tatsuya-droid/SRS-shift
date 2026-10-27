@@ -107,6 +107,19 @@
     .member-tag.is-fixed { border: 1px dashed #64748b; background: #fff; }
     .member-tag .fix-mark { font-size: 9px; font-weight: 700; color: #fff; background: #64748b; border-radius: 3px; padding: 0 3px; margin-left: 4px; vertical-align: 1px; }
     .member-tag.is-me .fix-mark { background: #065f46; }
+    .happy-btn { font-size: 10px; padding: 2px 6px; border-radius: 10px; margin-top: 6px; cursor: pointer; display: inline-block; font-weight: 700; border: 1px solid; }
+    .happy-btn.on { background: #fdf2f8; color: #be185d; border-color: #f9a8d4; }
+    .happy-btn.off { background: #f8fafc; color: #94a3b8; border-color: #e2e8f0; text-decoration: line-through; }
+    .happy-btn:hover { filter: brightness(0.96); }
+    /* スワイプで月移動 */
+    #month-toast { position: fixed; left: 50%; top: 18px; transform: translate(-50%, -10px); background: rgba(30,41,59,0.92); color: #fff; padding: 8px 18px; border-radius: 20px; font-size: 15px; font-weight: 700; opacity: 0; pointer-events: none; transition: opacity .2s, transform .2s; z-index: 200; }
+    #month-toast.show { opacity: 1; transform: translate(-50%, 0); }
+    .swipe-anim-left { animation: swipeInLeft .25s ease-out; }
+    .swipe-anim-right { animation: swipeInRight .25s ease-out; }
+    @keyframes swipeInLeft { from { opacity: .3; transform: translateX(40px); } to { opacity: 1; transform: none; } }
+    @keyframes swipeInRight { from { opacity: .3; transform: translateX(-40px); } to { opacity: 1; transform: none; } }
+    .swipe-hint { display: none; text-align: center; font-size: 12px; color: var(--text-muted); margin: -10px 0 12px; }
+    @media (hover: none) and (pointer: coarse) { .swipe-hint { display: block; } }
     .over-slot { color: #b45309; font-weight: 600; font-size: 12px; margin-top: 4px; }
     .cap-note { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
     .cap-table { width: 100%; border-collapse: collapse; }
@@ -199,7 +212,9 @@
     </div>
   </div>
 
-  <div class="table-container">
+  <div class="swipe-hint">左右にスワイプで月を切り替え</div>
+  <div id="month-toast"></div>
+  <div class="table-container" id="shift-table-container">
     <table id="shift-table">
       <thead>
         <tr>
@@ -225,7 +240,7 @@
         <tr>
           <th width="10%">名前</th>
           <th width="6%">計</th>
-          <th width="6%">木当<br><span style="font-size:10px">8月~</span></th>
+          <th width="6%">ﾊｯﾋﾟｰ<br>木曜</th>
           <th width="26%">当直 (内訳)</th>
           <th width="26%">ｲﾌﾞﾆﾝｸﾞ (内訳)</th>
           <th width="26%">日直 (内訳)</th>
@@ -243,7 +258,7 @@
           <tr>
             <th width="10%">名前</th>
             <th width="6%">計</th>
-            <th width="6%">木当<br><span style="font-size:10px">8月~</span></th>
+            <th width="6%">ﾊｯﾋﾟｰ<br>木曜</th>
             <th width="26%">当直 (内訳)</th>
             <th width="26%">ｲﾌﾞﾆﾝｸﾞ (内訳)</th>
             <th width="26%">日直 (内訳)</th>
@@ -417,6 +432,48 @@
       const now = new Date(); currentYear = now.getFullYear(); currentMonth = now.getMonth() + 1;
       document.getElementById('year-select').value = currentYear; document.getElementById('month-select').value = currentMonth; render();
     }
+    // ====== 月の前後移動（スワイプ用） ======
+    function moveMonth(delta) {
+      let y = currentYear, m = currentMonth + delta;
+      if (m > 12) { m = 1; y++; } else if (m < 1) { m = 12; y--; }
+      const ys = document.getElementById('year-select');
+      if (![...ys.options].some(o => Number(o.value) === y)) {   // 選択肢に無い年なら追加
+        const opt = new Option(y, y);
+        if (y < Number(ys.options[0].value)) ys.add(opt, 0); else ys.add(opt);
+      }
+      currentYear = y; currentMonth = m;
+      ys.value = y; document.getElementById('month-select').value = m;
+      render();
+      const box = document.getElementById('shift-table-container');
+      box.classList.remove('swipe-anim-left', 'swipe-anim-right'); void box.offsetWidth;
+      box.classList.add(delta > 0 ? 'swipe-anim-left' : 'swipe-anim-right');
+      const toast = document.getElementById('month-toast');
+      toast.textContent = `${y}年 ${m}月`; toast.classList.add('show');
+      clearTimeout(moveMonth._t); moveMonth._t = setTimeout(() => toast.classList.remove('show'), 1000);
+    }
+    window.moveMonth = moveMonth;
+
+    // スマホ：左スワイプ → 翌月 / 右スワイプ → 前月
+    (function setupSwipe() {
+      let sx = 0, sy = 0, st = 0, tracking = false;
+      const isModalOpen = () => [...document.querySelectorAll('.modal-box, #modal-overlay')].some(el => el.style.display === 'block');
+      document.addEventListener('touchstart', e => {
+        tracking = false;
+        if (e.touches.length !== 1 || isModalOpen()) return;
+        if (e.target.closest('input, select, textarea, .modal-box')) return;
+        const t = e.touches[0]; sx = t.clientX; sy = t.clientY; st = Date.now(); tracking = true;
+      }, { passive: true });
+      document.addEventListener('touchend', e => {
+        if (!tracking) return; tracking = false;
+        if (isModalOpen()) return;
+        const t = e.changedTouches[0]; const dx = t.clientX - sx, dy = t.clientY - sy;
+        if (Date.now() - st > 800) return;                                   // ゆっくりした操作は無視
+        if (Math.abs(dx) < 60 || Math.abs(dx) < Math.abs(dy) * 1.5) return;  // 縦スクロールや小さな動きは無視
+        moveMonth(dx < 0 ? 1 : -1);
+      }, { passive: true });
+      document.addEventListener('touchcancel', () => { tracking = false; }, { passive: true });
+    })();
+
     window.changeMonth = function() { currentYear = parseInt(document.getElementById('year-select').value); currentMonth = parseInt(document.getElementById('month-select').value); render(); }
     async function saveData() { try { await setDoc(docRef, srsData); } catch (e) { console.error(e); alert("保存失敗"); } }
     function getMonthKey(y, m) { return `${y}-${String(m).padStart(2, '0')}`; }
@@ -437,12 +494,31 @@
       if (!md.capacities) md.capacities = {};
       if (!md.fixed) md.fixed = {};   // 手入力で確定したメンバー { 日: {day:[],night:[],eve:[]} }
       if (!md.locked) md.locked = {}; // 自動生成で追加しない枠 { 日: {day:true,...} }
+      if (!md.happyThu) md.happyThu = {}; // ハッピー木曜の個別設定 { 日: true(カウントする) / false(カウントしない) }
       Object.keys(md.requests).forEach(d => md.requests[d] = parseRequests(md.requests[d]));
       return key;
     }
 
     function emptyDay() { return { day: [], night: [], eve: [] }; }
     function getFixed(key, d) { const f = srsData[key].fixed[d]; return f ? { day: f.day || [], night: f.night || [], eve: f.eve || [] } : emptyDay(); }
+    // ハッピー木曜：その木曜当直をカウントするか
+    // 個別設定があればそれに従い、無ければ「2026年8月以降の木曜」をカウント対象とする（従来の挙動）
+    function isHappyThuDefault(y, m) { return (y > 2026) || (y === 2026 && m >= 8); }
+    function isHappyThu(y, m, d) {
+      d = Number(d);
+      if (new Date(y, m - 1, d).getDay() !== 4) return false;
+      const md = srsData[getMonthKey(y, m)];
+      if (md && md.happyThu && md.happyThu[d] !== undefined) return !!md.happyThu[d];
+      return isHappyThuDefault(y, m);
+    }
+    window.toggleHappyThu = function(d) {
+      const op = checkOperator(); if(!op) return;
+      const key = ensureMonthData(currentYear, currentMonth);
+      const next = !isHappyThu(currentYear, currentMonth, d);
+      if (next === isHappyThuDefault(currentYear, currentMonth)) delete srsData[key].happyThu[d]; else srsData[key].happyThu[d] = next;
+      addLog(`${currentMonth}月${d}日の木曜当直を「ハッピー木曜」${next ? 'のカウント対象にしました' : 'のカウント対象外にしました'}`, op);
+      saveData(); render();
+    }
     function isLocked(key, d, type) { return !!(srsData[key].locked[d] && srsData[key].locked[d][type]); }
 
     function isHoliday(y, m, d) {
@@ -511,7 +587,7 @@
 
         const tr = document.createElement('tr'); tr.className = rowClass;
         tr.innerHTML = `
-          <td style="font-weight:600; line-height:1.4;">${dateDisplay} <br><button class="btn-micro" style="${hasCustomCap ? 'background:#fffbeb; border-color:#fde68a; color:#92400e;' : ''}" onclick="openCapacityModal(${d})">${hasCustomCap ? '人数設定*' : '人数設定'}</button></td>
+          <td style="font-weight:600; line-height:1.4;">${dateDisplay} <br><button class="btn-micro" style="${hasCustomCap ? 'background:#fffbeb; border-color:#fde68a; color:#92400e;' : ''}" onclick="openCapacityModal(${d})">${hasCustomCap ? '人数設定*' : '人数設定'}</button>${typeInfo.w === 4 ? (() => { const on = isHappyThu(currentYear, currentMonth, d); return `<span class="happy-btn ${on ? 'on' : 'off'}" title="クリックで切替：この日の当直をハッピー木曜としてカウント${on ? 'しない' : 'する'}" onclick="toggleHappyThu(${d})">${on ? 'ﾊｯﾋﾟｰ木曜' : 'ﾊｯﾋﾟｰ対象外'}</span>`; })() : ''}</td>
           <td style="font-weight:500;">${daysStr[typeInfo.w]}</td>
           <td class="clickable" onclick="openModal(${d}, 'requests')">${formatRequestsText(reqsObj)}</td>
           <td class="clickable ${isMyDay ? 'my-shift-cell' : ''}" onclick="openModal(${d}, 'day')">${formatShift(sh.day, dailyCap.day, op, fx.day, isLocked(key, d, 'day'))}</td>
@@ -773,7 +849,6 @@
       for (let d = 1; d <= daysInMonth; d++) { const fx = getFixed(key, d); SHIFT_TYPES.forEach(t => fixedCount += fx[t].length); }
       if(!confirm(`${currentMonth}月のシフトを自動生成しますか？\n\n・手入力した固定シフト（${fixedCount}件）は変更しません\n・固定分も含めて回数が均等になるように割り振ります\n・自動生成済みのシフトは作り直されます（休み希望は維持されます）`)) return;
 
-      const isAfterAug2026 = (currentYear > 2026) || (currentYear === 2026 && currentMonth >= 8);
 
       // 固定シフトのみの状態を作り、その状態で集計（＝固定分を回数に含める）
       const baseShifts = {};
@@ -805,12 +880,12 @@
           const candidates = members.filter(mem => canAssign(d, type, mem, working, reqsObj));
           if (candidates.length === 0) { unfilled++; return; }
 
-          // 小さいほど優先（優先度順：今月合計 > 木当直・祝日 > 曜日別の偏り(今月/年度) > 種類別 > 年度合計）
+          // 小さいほど優先（優先度順：今月合計 > ハッピー木曜・祝日 > 曜日別の偏り(今月/年度) > 種類別 > 年度合計）
           const score = mem => {
             const st = stats[mem];
             const allByDay = sc => st[sc].dayByDay[dow] + st[sc].nightByDay[dow] + st[sc].eveByDay[dow];
             let sc = st.month.total * 1e7;                                   // 今月の合計回数を最優先で均等に
-            if (isAfterAug2026 && actualDow === 4 && type === 'night') sc += st.year.thuNightAfterAug * 5e6; // 木当直（年度）
+            if (type === 'night' && isHappyThu(currentYear, currentMonth, d)) sc += st.year.thuNightAfterAug * 5e6; // ハッピー木曜（年度）
             if (dow === 7) sc += st.year[type+"ByDay"][7] * 3e6 + allByDay('year') * 1e6;                   // 祝日（年度）
             sc += st.month[type+"ByDay"][dow] * 2e6;   // 今月：この種類×この曜日
             sc += allByDay('month') * 1e6;              // 今月：この曜日（全種類）
@@ -827,7 +902,7 @@
           const st = stats[selected];
           st.month.total++; st.year.total++; st.month[type]++; st.year[type]++;
           st.month[type+"ByDay"][dow]++; st.year[type+"ByDay"][dow]++;
-          if (isAfterAug2026 && actualDow === 4 && type === 'night') { st.month.thuNightAfterAug++; st.year.thuNightAfterAug++; }
+          if (type === 'night' && isHappyThu(currentYear, currentMonth, d)) { st.month.thuNightAfterAug++; st.year.thuNightAfterAug++; }
         });
 
         // 評価：未充足 → 今月合計のばらつき → 種類別のばらつき → 年度累計のばらつき
@@ -841,7 +916,7 @@
         }
         const cost = unfilled * 1e9
           + variance(mt) * 1e6 + (Math.max(...mt) - Math.min(...mt)) * 1e5   // 今月合計
-          + V('year', x => x.thuNightAfterAug) * 3e5                          // 木当直（年度）
+          + V('year', x => x.thuNightAfterAug) * 3e5                          // ハッピー木曜（年度）
           + dowCostM * 2e4 + dowCostY * 1e4                                   // 曜日別（今月・年度）
           + SHIFT_TYPES.reduce((a, t) => a + V('month', x => x[t]) + V('year', x => x[t]), 0) * 5e3
           + V('year', x => x.total) * 1e3;
@@ -913,7 +988,6 @@
         const key = getMonthKey(ym.y, ym.m);
         const data = srsData[key];
         const isCur = (ym.y === currentYear && ym.m === currentMonth);
-        const isAfterAug2026 = (ym.y > 2026) || (ym.y === 2026 && ym.m >= 8);
 
         if (data && data.shifts) {
           Object.keys(data.shifts).forEach(d => {
@@ -927,7 +1001,7 @@
               if (sh.night && sh.night.includes(m)) { 
                 stats[m].year.total++; stats[m].year.night++; stats[m].year.nightByDay[dow]++; 
                 if(isCur){ stats[m].month.total++; stats[m].month.night++; stats[m].month.nightByDay[dow]++; }
-                if (isAfterAug2026 && actualDow === 4) {
+                if (isHappyThu(ym.y, ym.m, d)) { // ハッピー木曜としてカウント
                   stats[m].year.thuNightAfterAug++;
                   if(isCur) stats[m].month.thuNightAfterAug++;
                 }
